@@ -5,35 +5,35 @@
 " Created On         : 2010-11-02 13:17
 " Last Modified      : 2010-12-08 14:07
 " Description        : vhdl/verilog plugin
-" Version            : v2.2
+" Version            : v2.3
 "
 " history            :  v1.0    创建插件，实现编译，加入注释，文件头等功能 
-"                       v1.1    加入函数Component_Build() 可以实现垂直分割窗口
+"                       v1.1    加入函数HDL_Component_Build() 可以实现垂直分割窗口
 "                               生成component信息
 "                       v1.2    加入函数Tb_Build() 可以为vhdl模块生成testbench文档
 "                       v1.3    1 生成进程的命令改为：ProBuild
-"                               2 加入函数Tb_Vhdl_Build(type) 函数
+"                               2 加入函数HDL_Tb_Build(type) 函数
 "                                   代替函数Tb_Build() 
 "                                   修改了testbench文档的生成方式
 "                                   功能：可以生成vhdl模块的vhdl testbench或者 verilog testbench
-"                               3 修改了Component_Build()函数
+"                               3 修改了HDL_Component_Build()函数
 "                                   修改了component的生成方式
 "                               4 代码风格做了一些修改
 "                               5 修改了光标位置
-"                       v1.4    修改了Tb_Vhdl_Build(type)函数 使生成的component按原信号顺序排列
+"                       v1.4    修改了HDL_Tb_Build(type)函数 使生成的component按原信号顺序排列
 "                       v1.5    加入菜单
 "                       v1.6    优化程序
-"                       v1.7    Component_Build可以用变量定义选择instant窗口的方式
-"                               不定义 g:RightB_Commponent  则水平分割打开
-"                               g:RightB_Commponent = 1 原文件右侧垂直打开
-"                               g:RightB_Commponent = 0 原文件左侧垂直打开
+"                       v1.7    HDL_Component_Build可以用变量定义选择instant窗口的方式
+"                               不定义 g:HDL_RightB_Commponent  则水平分割打开
+"                               g:HDL_RightB_Commponent = 1 原文件右侧垂直打开
+"                               g:HDL_RightB_Commponent = 0 原文件左侧垂直打开
 "                       v1.8    修改了一些错误
-"                       v1.9    1 修改了AddFileInformation()和AddContent()函数
-"                               2 加入变量g:HDL_Author g:HDL_Company g:Verilog_Timescale
+"                       v1.9    1 修改了HDL_Add_File_Information()和HDL_Add_Content()函数
+"                               2 加入变量g:HDL_Author g:HDL_Company g:HDL_Verilog_Timescale
 "                                 可以在vimrc中添加设置,例如:
 "                                   let g:HDL_Company = "Vorx"
 "                                   let g:HDL_Author = "ChenYong"
-"                                   let g:Verilog_Timescale = " 1ns / 1ns"
+"                                   let g:HDL_Verilog_Timescale = " 1ns / 1ns"
 "                               3 加入generic部分 使可识别generic
 "                               4 加入g:HDL_Clock_Period 时钟周期可设置，默认为64
 "                                   let g:HDL_Clock_Period = 64
@@ -53,7 +53,7 @@
 "                                                o : out	std_logic 
 "                                            );
 "                                    end component;
-"                               整理后变为：
+"                               整理后为：
 "                                   component bufg
 "                                       port(
 "                                               i				: in	std_logic;  
@@ -63,10 +63,16 @@
 "
 "                               整理前会先进行编译。
 "
-"                               对于较大的文件可能时间会有3-4秒延迟。
+"                               对于较大的文件可能时间会有3-4秒延迟(indent操作比较费时间)。
 "
 "                               变量名字超过16个字符将不留空格。如：
 "                                   cak_ram_char_ch14: out	std_logic_vector(1 downto 0)
+"                       v2.3    加入了一个添加signal的函数，感谢作者sunil shukla。
+"                               我仅修改了一下正则匹配方式，和标志begin查找方式。
+"                               设定快捷键<leader>,,添加。光标要停留在未定义的signal上。
+"                               会询问signal长度。很好用。
+"                               Fixed Some Bugs.
+"                               Redifined The function name.
 "
 "
 "
@@ -78,21 +84,23 @@
 "
 
 "    main function:
-"    Add a menu for vim:
-"    create a library 
-"    Compile file
-"    Add File Header
-"    Add Content
-"    Process
-"    Module/Entity
-"    Vhdl Component:Creat a window to display the Component information,and add these to clipboard
-"    Verilog Instant : Fast instant for verilog.Also add to clipboard
-"    Vhdl Testbench :Generate a vhdl testbench file 
-"    Verilog Testbench :Generate a verilog testbench file
-"    Add a menu list "Format Vhdl File" which can finishing the code.
-"    make ":,=>" in the same position.Support the "component","signal","instant"and "entity" part.
-"    
-
+"    Add a menu for vim
+"
+"    Create a Library: 
+"    Compile File:
+"    Add File Header: 
+"    Add Content: 
+"    Always/Process: 
+"    Entity/Module:
+"    Vhdl Component: Creat a window to display the Component information,and add these to clipboard
+"    Verilog Instant: Fast instant for verilog.Also add to clipboard
+"    Vhdl Testbench: Generate a vhdl testbench file 
+"    Verilog Testbench: Generate a verilog testbench file
+"    Format Vhdl File: it can help you to finishing the code.
+"                      make ":,=>" in the same position.
+"                      Support the "component","signal","instant"and "entity" part.
+"    Use <leader>, to fast define signal.
+"
 "    view details:http://www.cnblogs.com/ifys/archive/2010/11/20/1882673.html#
 "    e-mail: achillowy@163.com
 "    Welcome to post your suggestions to me.
@@ -103,38 +111,42 @@ if exists('b:hdl_plugin') || &cp || version < 700
 endif
 let b:hdl_plugin = 1
 
-nmenu HDL.Create\ a\ Library<Tab>F6             <Esc>:!vlib work<CR><CR>
-nmenu HDL.Compile\ File<Tab>F7                  <Esc>:ModSimComp<CR><CR>
-nmenu HDL.Add\ File\ Header<Tab>:AddInfo        :AddInfo<CR>
-nmenu HDL.Add\ Content<Tab>:Acontent            :Acontent<CR>
-nmenu HDL.Process<Tab>:ProBuild                 :ProBuild<CR>
-nmenu HDL.Module/Entity<Tab>:VhdlEntity         :VhdlEntity<CR>
-nmenu HDL.Vhdl\ Component<Tab>:CompoB           :CompoB<CR> 
-nmenu HDL.Verilog\ Instant<Tab>:InstantV        :InstantV<CR>
-nmenu HDL.Vhdl\ Testbench<Tab>:TbVhdl           :TbVhdl<CR>
-nmenu HDL.Verilog\ Testbench<Tab>:TbVerilog     :TbVerilog<CR>
-nmenu HDL.Format\ Vhdl\ File<Tab>:FormatVHDL    :FormatVHDL<CR> 
-
-command     AddInfo     :call AddFileInformation()
-command     Acontent    :call AddContent()
-command     ProBuild    :call Always_Process_Build("posedge", "posedge")
-command     VhdlEntity  :call Module_Entity_Build()
-command     ModSimComp  :call Model_Sim_Compile()|:cw
-command     CompoB      :call Component_Build("vhdl")
-command     InstantV    :call Component_Build("verilog")
-command     TbVhdl      :call Tb_Vhdl_Build("vhdl")
-command     TbVerilog   :call Tb_Vhdl_Build("verilog")
-command     FormatVHDL  :call Vhdl_Format()
-
-nmap <silent><F7> :ModSimComp<CR><CR>
-nmap <silent><F6> <Esc>:!vlib work<CR><CR>
-
-if !exists("g:Width_of_Component")
-    let g:Width_of_Component = "70"
+if !exists("g:HDL_Menu")
+    nmenu HDL.Create\ a\ Library<Tab>F6             <Esc>:!vlib work<CR><CR>
+    nmenu HDL.Compile\ File<Tab>F7                  <Esc>:ModSimComp<CR><CR>
+    nmenu HDL.Add\ File\ Header<Tab>:AddInfo        :AddInfo<CR>
+    nmenu HDL.Add\ Content<Tab>:Acontent            :Acontent<CR>
+    nmenu HDL.Process/Always<Tab>:ProBuild          :ProBuild<CR>
+    nmenu HDL.Entity/Module<Tab>:VhdlEntity         :VhdlEntity<CR>
+    nmenu HDL.Vhdl\ Component<Tab>:CompoB           :CompoB<CR> 
+    nmenu HDL.Verilog\ Instant<Tab>:InstantV        :InstantV<CR>
+    nmenu HDL.Vhdl\ Testbench<Tab>:TbVhdl           :TbVhdl<CR>
+    nmenu HDL.Verilog\ Testbench<Tab>:TbVerilog     :TbVerilog<CR>
+    nmenu HDL.Format\ Vhdl\ File<Tab>:FormatVHDL    :FormatVHDL<CR> 
 endif
 
-if !exists("g:Height_of_Component")
-    let g:Height_of_Component = "25"
+command     AddInfo     :call HDL_Add_File_Information()
+command     Acontent    :call HDL_Add_Content()
+command     ProBuild    :call HDL_Always_Process_Build("posedge", "posedge")
+command     VhdlEntity  :call HDL_Entity_Module_Build()
+command     ModSimComp  :call HDL_Modelsim_Compile()|:cw
+command     CompoB      :call HDL_Component_Build("vhdl")
+command     InstantV    :call HDL_Component_Build("verilog")
+command     TbVhdl      :call HDL_Tb_Build("vhdl")
+command     TbVerilog   :call HDL_Tb_Build("verilog")
+command     FormatVHDL  :call HDL_Vhdl_Format()
+command     SetSignal   :call HDL_Signal_Dec_Vhdl()
+
+nmap <silent> <unique> <F7> :ModSimComp<CR><CR>
+nmap <silent> <unique> <F6> <Esc>:!vlib work<CR><CR>
+nmap <unique> <leader>, <Esc>:SetSignal<CR>
+
+if !exists("g:HDL_Width_of_Component")
+    let g:HDL_Width_of_Component = "60"
+endif
+
+if !exists("g:HDL_Height_of_Component")
+    let g:HDL_Height_of_Component = "25"
 endif
 
 if !exists("g:HDL_Author")
@@ -145,8 +157,8 @@ if !exists("g:HDL_Company")
     let g:HDL_Company = ""
 endif
 
-if !exists("g:Verilog_Timescale")
-    let g:Verilog_Timescale = "1ns / 1ps"
+if !exists("g:HDL_Verilog_Timescale")
+    let g:HDL_Verilog_Timescale = "1ns / 1ps"
 endif
 
 if !exists("g:HDL_Clock_Period")
@@ -154,14 +166,14 @@ if !exists("g:HDL_Clock_Period")
 endif
 
 "------------------------------------------------------------------------------
-"Function    : Model_Sim_Compile() 
+"Function    : HDL_Modelsim_Compile() 
 "Description : Compile with ModelSim  
 "------------------------------------------------------------------------------
-function Model_Sim_Compile()
-    if Check_File_Type() == 1
+function HDL_Modelsim_Compile()
+    if HDL_Check_Filetype() == 1
         set makeprg=vcom\ -work\ work\ %
         execute "make"
-    elseif Check_File_Type() == 2 
+    elseif HDL_Check_Filetype() == 2 
         set makeprg=vlog\ -work\ work\ %
         execute "make"
     else
@@ -175,18 +187,18 @@ endfunction
 set errorformat=\*\*\ %tRROR:\ %f(%l):\ %m,\*\*\ %tRROR:\ %m,\*\*\ %tARNING:\ %m,\*\*\ %tOTE:\ %m,%tRROR:\ %f(%l):\ %m,%tARNING\[%*[0-9]\]:\ %f(%l):\ %m,%tRROR:\ %m,%tARNING\[%*[0-9]\]:\ %m
 
 "------------------------------------------------------------------------
-"Function    : AddFileInformation() 
+"Function    : HDL_Add_File_Information() 
 "Decription  : Add File Header 
 "------------------------------------------------------------------------
-function AddFileInformation()
-    if Check_File_Type() == 1
+function HDL_Add_File_Information()
+    if HDL_Check_Filetype() == 1
         let comment = "--"
         let others = "library ieee;\nuse ieee.std_logic_1164.all;\nuse ieee.std_logic_arith.all;\n"
                     \."use ieee.std_logic_unsigned.all;\n\n"
-    elseif Check_File_Type() == 2 
+    elseif HDL_Check_Filetype() == 2 
         let comment = "//"
-        let others = "`timescale ".g:Verilog_Timescale."\n\n"
-    elseif Check_File_Type() == 3 
+        let others = "`timescale ".g:HDL_Verilog_Timescale."\n\n"
+    elseif HDL_Check_Filetype() == 3 
         let comment = "\""
         let others = ""
 "if you want add other file type ,then add in here 
@@ -212,20 +224,20 @@ function AddFileInformation()
 endfunction
 
 "------------------------------------------------------------------------------
-"Function  : AddContent() 
+"Function  : HDL_Add_Content() 
 "Description: 在光标当前位置插入注释
 "------------------------------------------------------------------------------
-function AddContent()
+function HDL_Add_Content()
     let file_type_temp = expand("%:e")
 "    let file_type_temp = getftype(expand("%:p"))
-    if Check_File_Type() == 1
+    if HDL_Check_Filetype() == 1
         let comment = "--"
-    elseif Check_File_Type() == 2 
+    elseif HDL_Check_Filetype() == 2 
         let comment = "//"
-    elseif Check_File_Type() == 3 
+    elseif HDL_Check_Filetype() == 3 
         let comment = "\""
 "if you want add other file type ,then add in here 
-"    elseif Check_File_Type() == 
+"    elseif HDL_Check_Filetype() == 
 "        let comment = ""
     else 
         let comment = ""
@@ -259,11 +271,11 @@ endfunction
 "        signal     clk     :   std_logic;  --clock
 "        signal     rst     :   std_logic;  --reset
 "---------------------------------------------------------------
-function Always_Process_Build(clk_edge, rst_edge)
+function HDL_Always_Process_Build(clk_edge, rst_edge)
     let file_type_temp = expand("%:e")
     if file_type_temp == "verilog"
        for line in getline(1, line("$"))
-           if line =~ '^\s*//.*$'
+           if line =~ '^\s*//'
                continue
            elseif line =~ '^\s*\<input\>.*//\s*\<clock\>\s*$'
               let line = substitute(line, '^\s*\<input\>\s*', "", "")
@@ -379,10 +391,10 @@ function Always_Process_Build(clk_edge, rst_edge)
 endfunction
 
 "------------------------------------------------------------------------------
-"Function    : Module_Entity_Build() 
+"Function    : HDL_Entity_Module_Build() 
 "Description : 在当前位置插入entity
 "------------------------------------------------------------------------------
-function Module_Entity_Build()
+function HDL_Entity_Module_Build()
     let file_type_temp = expand("%:e")
     let ent_name = inputdialog("entity name:")
     if ent_name != ""
@@ -402,55 +414,48 @@ function Module_Entity_Build()
 endfunction 
 
 "------------------------------------------------------------------------
-"Function    : Get_Information_Of_Entity() 
+"Function    : HDL_Entity_Information() 
 "Decription  : get position and port map of the entity 
 "------------------------------------------------------------------------
-function Get_Information_Of_Entity()
+function HDL_Entity_Information()
     " 保存初始位置，entity读取完成跳转回来
     exe "ks"
-    if Check_File_Type() == 1
+    if HDL_Check_Filetype() == 1
         " Get the entity position
-        let first_line = search('\<entity\>.*\<is\>','w')
+        let first_line = search('\(--.*\)\@<!\<entity\>\_.\{-}\<is\>','w')
         if first_line == 0
             echo "Can't Find Start Entity."
             return 0
         endif
-        let last_line = searchpair('\<entity\>.*\<is\>','','\<end\>.*;','W')
+        "let last_line = searchpair('\<entity\>\_s*\(\<[a-zA-Z0-9_]*\>\)\_s*\<is\>','','\<end\>\s*\1;','w')
+        let last_line = search('\<entity\>\_s*\(\<[a-zA-Z0-9_]*\>\)\_s*\<is\>\_.\{-}\zs\<end\>\_s*\1;','w')
         if last_line == 0
             echo "Can't Find End Entity."
             return 0
         endif
         " entity name 
         let line = getline(first_line)
-        let s:ent_name = substitute(line,'^\s*\<entity\>\s*',"","")
-        let s:ent_name = substitute(s:ent_name,'\s*\<is\>.*$',"","")
+        let s:ent_name = substitute(line,'^\s*\<entity\>\_s*\(\<[a-zA-Z0-9_]*\>\)\_s*\<is\>.*$',"\\1","")
         " 端口的首行和末行
+        "let port_start_line = search('\<entity\>\_.\{-}\<is\>\_s*\zs\(--.*\)\@<!\<port\>','w')
         call cursor(first_line,1)
-        let port_start_line = search('\<port\>','W',last_line)
-        let i = 1
-        while i
-            if getline(line('.')) =~ '^\s*--'
-                let port_start_line = search('\<port\>','W',last_line)
-                let i = 1
-            else
-                let i = 0
-            endif
-        endwhile
-        call search('(','W')
-        exe "normal %"
+        let port_start_line = search('^\s*\(--.*\)\@<!\<port\>','W',last_line)
+"        let port_start_line = search('\<entity\>\_.\{-}\<is\>\_s*\%(--.*\_s*\)\{-}\(--.*\)\@<!\<port\>\_s*\zs(','W')
+        if port_start_line == 0
+            echo "Can't Find The Start of Port."
+            return
+        endif
+        normal %
         let port_last_line = line('.')
         " 检查generic的首行和末行
         call cursor(first_line,1)
-        let s:generic_start_line = search('\<generic\>','W',last_line)
-        if getline(line('.')) =~ '^\s*--' 
-            let s:generic_start_line = search('\<generic\>','W',last_line)
-        endif
+        let s:generic_start_line = search('\(--.*\)\@<!\<generic\>','W',last_line)
         if s:generic_start_line != 0
             call search('(','W')
-            exe "normal %"
+            normal %
             let generic_last_line = line('.')
             let s:generic_count = 0
-            call Get_Generic_Port(s:generic_start_line,generic_last_line)
+            call HDL_Generic_Port(s:generic_start_line,generic_last_line)
         endif
         " 设置3个List来存放端口的信息
         let s:port_cout = 0
@@ -485,22 +490,16 @@ function Get_Information_Of_Entity()
             endif
             " 删掉行首的空格
             let line = substitute(line,'^\s*',"","")
+            " 删掉行尾空格
+            let line = substitute(line,'\s*$',"","")
             " 将信号按顺序存在list列表中
-            if line =~ '^.*:\s*\<in\>.*$' || line =~ '^.*:\s*\<out\>.*$'
+            if line =~ '^.*:\s*\<\%[in]\%[out]\>.*$'
                 let port_t = substitute(line,'\s*:.*$',"","")
-                if line =~ ':\s*\<in\>' 
-                    let direction_t = "in"
-                    let type_t = substitute(line,'^.*:\s*\<in\>\s*',"","")
-                elseif line =~ ':\s*\<out\>'
-                    let direction_t = "out"
-                    let type_t = substitute(line,'^.*:\s*\<out\>\s*',"","")
-                elseif line =~ ':\s*\<inout\>'
-                    let direction_t = "inout"
-                    let type_t = substitute(line,'^.*:\s*\<inout\>\s*',"","")
-                endif
+                let type_t =  substitute(line,'^.*:.*\(\<std_logic\%[_vector]\>\%(([^)]*)\)\?\)\s*',"\\1","")
+                let direction_t = substitute(line,'^.*:\s*\(\<[inout]*\>\).*$',"\\1","")
                 " 如果多个port在同一行
                 if port_t =~ ','
-                    let port_t = substitute(port_t,'\s*',"","g")
+                    let port_t = substitute(port_t,'\s\+',"","g")
                     let comma_pos = [-1]
                     let j = 1
                     while 1
@@ -537,27 +536,16 @@ function Get_Information_Of_Entity()
             let i = i + 1
         endwhile
 
-    elseif Check_File_Type() == 2
+    elseif HDL_Check_Filetype() == 2
         " 找到文件module
-        let module_line = search('\<module\>','w')
-        while 1
-            if module_line == 0
-                echo "Can't Find The Module."
-                return 0
-            elseif getline(module_line) =~ '//' 
-                let module_line = search('\<module\>','w')
-            else
-                break
-            endif
-        endwhile
+        let module_line = search('\(\/\/.*\)\@<!\<module\>','w')
+        if module_line == 0
+            echo "Can't Find The Module."
+            return 0
+        endif
         " 得到module的名字
         let line = getline(module_line)
-        if line =~ '^.*(.*$'
-            let s:ent_name = substitute(line,'\s*(.*$',"","")
-        else 
-            let s:ent_name = substitute(line,'\s*$',"","")
-        endif
-        let s:ent_name = substitute(s:ent_name,'^\s*\<module\>\s*',"","")
+        let s:ent_name = substitute(line,'\%(\/\/.*\)\@<!\<module\>\s*\(\<[a-zA-Z0-9_]*\>\).*$',"\\1","")
         " 寻找下一个出现的括号来找到端口列表的首行和尾行
         if search("(",'W') 
             let first_line = line('.')
@@ -571,9 +559,8 @@ function Get_Information_Of_Entity()
         for line in getline(last_line,line('$'))
             if line =~ '^\s*//'
                 continue
-            elseif line =~ '\<input\>' || line =~ '\<output\>' || line =~ '\<inout\>'
-                let line = substitute(line,'^\s*',"","")
-                let line = substitute(line,'\s*;.*$',"","")
+            elseif line =~ '\%(\/\/.*\)\@<!\<\%[in]\%[out]\%[put]\>'
+                let line = substitute(line,' ^\s*\%(\/\/.*\)\@<!\(\<\%[in]\%[out]\%[put]\>.*\)\s*;\s*$',"\\1","")
                 call add(port_information,line)
             endif
         endfor
@@ -581,12 +568,12 @@ function Get_Information_Of_Entity()
         let ports = ''
         for line in getline(first_line,last_line)
             let line = substitute(line,'^.*(\s*',"","")
-            let line = substitute(line,'\s*)\s*;.*$',"","")
+            let line = substitute(line,'\s*)\_s*;.*$',"","")
             let ports = ports.line
         endfor
 
         " 去掉空格
-        let ports = substitute(ports,'\s*',"","g")
+        let ports = substitute(ports,'\s\+',"","g")
         " 得到ports中每个逗号的位置，并加入list--comma_pos
         let comma_pos = [-1]
         let j = 1
@@ -629,7 +616,7 @@ function Get_Information_Of_Entity()
             if len_start != -1 
                 let len_end = stridx(port_information[num],"]")
                 let len = strpart(port_information[num],len_start,len_end-len_start+1)
-                let type = Change_to_vhdl_type(len)
+                let type = HDL_Change2Vhdl(len)
                 call add(s:type,type)
             else 
                 call add(s:type,"std_logic")
@@ -644,6 +631,9 @@ function Get_Information_Of_Entity()
         return 0
     endif
     " 跳转回刚刚标记的地方
+    "echo s:port
+    "echo s:direction
+    "echo s:type
     exe "'s"
     return 1
 endfunction
@@ -652,7 +642,7 @@ endfunction
 "Function    : Get generic information from the file 
 "Decription  :  
 "------------------------------------------------------------------------
-function Get_Generic_Port(start_line,last_line)
+function HDL_Generic_Port(start_line,last_line)
     " 设置3个List来存放端口的信息
     let s:generic_count = 0
     let s:generic_port = []
@@ -705,18 +695,17 @@ function Get_Generic_Port(start_line,last_line)
         endif
         let i = i + 1
     endwhile
-
 endfunction
 
 "------------------------------------------------------------------------
-"Function    : Check_File_Type()
+"Function    : HDL_Check_Filetype()
 "Decription  : Check file type 
 "               if vhdl return 1
 "               if verilog return 2
 "               if vim return 3
 "               others return 0
 "------------------------------------------------------------------------
-function Check_File_Type()
+function HDL_Check_Filetype()
     if expand("%:e") == "vhd"
         return 1
     elseif expand("%:e") == "v" 
@@ -729,11 +718,11 @@ function Check_File_Type()
 endfunction
 
 "-----------------------------------------------------------------------
-"Function    : Change_to_vlog_type(port_tp) 
+"Function    : HDL_Change2vlog(port_tp) 
 "Decription  : port_tp is std_logic_vector(x downto y)
 "               return a string as [x:y] 
 "------------------------------------------------------------------------
-function Change_to_vlog_type(port_tp)
+function HDL_Change2vlog(port_tp)
     if a:port_tp =~ '\<std_logic_vector\>'
         let mid = substitute(a:port_tp,'\<std_logic_vector\>\s*(',"","")
         if a:port_tp =~ '\<downto\>'
@@ -755,11 +744,11 @@ function Change_to_vlog_type(port_tp)
 endfunction
 
 "-------------------------------------------------------------------------------
-" Function		: Change_to_vhdl_type(port_tp)	
+" Function		: HDL_Change2Vhdl(port_tp)	
 " Description	: port_tp is [x:y]	
 "                   return a string as std_logic_vector(x downto y)
 "-------------------------------------------------------------------------------
-function Change_to_vhdl_type(port_tp)
+function HDL_Change2Vhdl(port_tp)
     let port_tp = substitute(a:port_tp,'\s*',"","g")
     let colon = stridx(port_tp,":")
     let high_tp = strpart(port_tp,1,colon-1)
@@ -776,26 +765,31 @@ endfunction
 
 
 "------------------------------------------------------------------------
-"Function    : Component_Part_Build(lang)
+"Function    : HDL_Component_Part(lang)
 "Decription  : build component part
 "------------------------------------------------------------------------
-function Component_Part_Build(lang)
+function HDL_Component_Part(lang)
     if a:lang == "vhdl"
         let component_part = "\tcomponent ".s:ent_name." is\n"
         if s:generic_start_line != 0
-            let component_part = component_part."\tgeneric (\n"
+            let component_part = component_part."\t\tgeneric(\n"
             let i = 0
             while i < s:generic_count 
                 if strwidth(s:generic_port[i])<4
-                    let component_part = component_part."\t\t".s:generic_port[i]."\t\t\t\t: ".s:generic_type[i]."\t"
+                    let component_part = component_part."\t\t\t\t".s:generic_port[i]
+                                \."\t\t\t\t: ".s:generic_type[i]."\t"
                 elseif strwidth(s:generic_port[i])<8 && strwidth(s:generic_port[i])>=4
-                    let component_part = component_part."\t\t".s:generic_port[i]."\t\t\t: ".s:generic_type[i]."\t"
+                    let component_part = component_part."\t\t\t\t".s:generic_port[i]
+                                \."\t\t\t: ".s:generic_type[i]."\t"
                 elseif strwidth(s:generic_port[i])<12 && strwidth(s:generic_port[i])>=8
-                    let component_part = component_part."\t\t".s:generic_port[i]."\t\t: ".s:generic_type[i]."\t"
+                    let component_part = component_part."\t\t\t\t".s:generic_port[i]
+                                \."\t\t: ".s:generic_type[i]."\t"
                 elseif strwidth(s:generic_port[i])<16 && strwidth(s:generic_port[i])>=12
-                    let component_part = component_part."\t\t".s:generic_port[i]."\t: ".s:generic_type[i]."\t"
+                    let component_part = component_part."\t\t\t\t".s:generic_port[i]
+                                \."\t: ".s:generic_type[i]."\t"
                 elseif strwidth(s:generic_port[i])>=16
-                    let component_part = component_part."\t\t".s:generic_port[i].": ".s:generic_type[i]."\t"
+                    let component_part = component_part."\t\t\t\t".s:generic_port[i]
+                                \.": ".s:generic_type[i]."\t"
                 endif
                 if s:generic_value[i] != ""
                     let component_part = component_part.":= ".s:generic_value[i]
@@ -808,19 +802,19 @@ function Component_Part_Build(lang)
                 let i = i + 1
             endwhile
         endif
-        let component_part = component_part."\tport (\n"
+        let component_part = component_part."\t\tport(\n"
         let i = 0
         while i < s:port_cout
             if strwidth(s:port[i])<4 
-                let component_part = component_part."\t\t".s:port[i]."\t\t\t\t: ".s:direction[i]."\t".s:type[i]
+                let component_part = component_part."\t\t\t\t".s:port[i]."\t\t\t\t: ".s:direction[i]."\t".s:type[i]
             elseif strwidth(s:port[i])<8 && strwidth(s:port[i])>=4
-                let component_part = component_part."\t\t".s:port[i]."\t\t\t: ".s:direction[i]."\t".s:type[i]
+                let component_part = component_part."\t\t\t\t".s:port[i]."\t\t\t: ".s:direction[i]."\t".s:type[i]
             elseif strwidth(s:port[i])<12 && strwidth(s:port[i])>=8
-                let component_part = component_part."\t\t".s:port[i]."\t\t: ".s:direction[i]."\t".s:type[i]
+                let component_part = component_part."\t\t\t\t".s:port[i]."\t\t: ".s:direction[i]."\t".s:type[i]
             elseif strwidth(s:port[i])>=12 && strwidth(s:port[i])<16
-                let component_part = component_part."\t\t".s:port[i]."\t: ".s:direction[i]."\t".s:type[i]
+                let component_part = component_part."\t\t\t\t".s:port[i]."\t: ".s:direction[i]."\t".s:type[i]
             elseif strwidth(s:port[i])>=16 
-                let component_part = component_part."\t\t".s:port[i].": ".s:direction[i]."\t".s:type[i]
+                let component_part = component_part."\t\t\t\t".s:port[i].": ".s:direction[i]."\t".s:type[i]
             endif
             if i != s:port_cout - 1
                 let component_part = component_part.";\n"
@@ -838,26 +832,26 @@ function Component_Part_Build(lang)
 endfunction
 
 "------------------------------------------------------------------------
-"Function    : Instant_Part_Build(lang)
+"Function    : HDL_Instant_Part(lang)
 "Decription  : build instant_part 
 "------------------------------------------------------------------------
-function Instant_Part_Build(lang)
+function HDL_Instant_Part(lang)
     if a:lang == "vhdl"
         let instant_part = "\t".s:ent_name."_inst : ".s:ent_name."\n"
         if s:generic_start_line != 0
-            let instant_part = instant_part."\tgeneric map (\n"
+            let instant_part = instant_part."\tgeneric map(\n"
             let i = 0
             while i < s:generic_count 
                 if strwidth(s:generic_port[i])<4
-                    let instant_part = instant_part."\t\t".s:generic_port[i]."\t\t\t\t=> "
+                    let instant_part = instant_part."\t\t\t\t".s:generic_port[i]."\t\t\t\t=> "
                 elseif strwidth(s:generic_port[i])<8 && strwidth(s:generic_port[i])>=4
-                    let instant_part = instant_part."\t\t".s:generic_port[i]."\t\t\t=> "
+                    let instant_part = instant_part."\t\t\t\t".s:generic_port[i]."\t\t\t=> "
                 elseif strwidth(s:generic_port[i])<12 && strwidth(s:generic_port[i])>=8
-                    let instant_part = instant_part."\t\t".s:generic_port[i]."\t\t=> "
+                    let instant_part = instant_part."\t\t\t\t".s:generic_port[i]."\t\t=> "
                 elseif strwidth(s:generic_port[i])<16 && strwidth(s:generic_port[i])>=12
-                    let instant_part = instant_part."\t\t".s:generic_port[i]."\t=> "
+                    let instant_part = instant_part."\t\t\t\t".s:generic_port[i]."\t=> "
                 elseif strwidth(s:generic_port[i])>=16
-                    let instant_part = instant_part."\t\t".s:generic_port[i]."=> "
+                    let instant_part = instant_part."\t\t\t\t".s:generic_port[i]."=> "
                 endif
                 if s:generic_value[i] != ""
                     let instant_part = instant_part.s:generic_value[i]
@@ -876,15 +870,15 @@ function Instant_Part_Build(lang)
         let i = 0
         while i < s:port_cout 
             if strwidth(s:port[i])<4
-                let instant_part = instant_part."\t\t".s:port[i]."\t\t\t\t=>\t".s:port[i]
+                let instant_part = instant_part."\t\t\t\t".s:port[i]."\t\t\t\t=>\t".s:port[i]
             elseif strwidth(s:port[i])<8 && strwidth(s:port[i])>=4
-                let instant_part = instant_part."\t\t".s:port[i]."\t\t\t=>\t".s:port[i]
+                let instant_part = instant_part."\t\t\t\t".s:port[i]."\t\t\t=>\t".s:port[i]
             elseif strwidth(s:port[i])>=8 && strwidth(s:port[i])<12
-                let instant_part = instant_part."\t\t".s:port[i]."\t\t=>\t".s:port[i]
+                let instant_part = instant_part."\t\t\t\t".s:port[i]."\t\t=>\t".s:port[i]
             elseif strwidth(s:port[i])>=12 && strwidth(s:port[i])<16
-                let instant_part = instant_part."\t\t".s:port[i]."\t=>\t".s:port[i]
+                let instant_part = instant_part."\t\t\t\t".s:port[i]."\t=>\t".s:port[i]
             else 
-                let instant_part = instant_part."\t\t".s:port[i]."=>\t".s:port[i]
+                let instant_part = instant_part."\t\t\t\t".s:port[i]."=>\t".s:port[i]
             endif
             if i != s:port_cout -1 
                 let instant_part = instant_part.",\n"
@@ -894,55 +888,55 @@ function Instant_Part_Build(lang)
             let i = i + 1
         endwhile
     elseif a:lang == "verilog"
-        let instant_part = "\t".s:ent_name
+        let instant_part = s:ent_name."\t"
         if s:generic_start_line != 0
             let i = 0
-            let instant_part = instant_part."\t#(\n"
+            let instant_part = instant_part."#(\n"
             let parameter = ""
             while i < s:generic_count
                 if s:generic_value[i] != ""
-                    let parameter = parameter."\tparameter\t".s:generic_port[i]." = ".s:generic_value[i].";\n"
+                    let parameter = parameter."parameter\t".s:generic_port[i]." = ".s:generic_value[i].";\n"
                 else 
-                    let parameter = parameter."\tparameter\t".s:generic_port[i]." = //Add value;\n"
+                    let parameter = parameter."parameter\t".s:generic_port[i]." = //Add value;\n"
                 endif
                 if strwidth(s:generic_port[i])<3
-                    let instant_part = instant_part."\t\t.".s:generic_port[i]."\t\t\t\t(".s:generic_port[i].")"
+                    let instant_part = instant_part."\t.".s:generic_port[i]."\t\t\t\t(".s:generic_port[i].")"
                 elseif strwidth(s:generic_port[i])<7 && strwidth(s:generic_port[i])>=3
-                    let instant_part = instant_part."\t\t.".s:generic_port[i]."\t\t\t(".s:generic_port[i].")"
+                    let instant_part = instant_part."\t.".s:generic_port[i]."\t\t\t(".s:generic_port[i].")"
                 elseif strwidth(s:generic_port[i])<11 && strwidth(s:generic_port[i])>=7
-                    let instant_part = instant_part."\t\t.".s:generic_port[i]."\t\t(".s:generic_port[i].")"
+                    let instant_part = instant_part."\t.".s:generic_port[i]."\t\t(".s:generic_port[i].")"
                 elseif strwidth(s:generic_port[i])<15 && strwidth(s:generic_port[i])>=11
-                    let instant_part = instant_part."\t\t.".s:generic_port[i]."\t(".s:generic_port[i].")"
+                    let instant_part = instant_part."\t.".s:generic_port[i]."\t(".s:generic_port[i].")"
                 else
-                    let instant_part = instant_part."\t\t.".s:generic_port[i]."(".s:generic_port[i].")"
+                    let instant_part = instant_part."\t.".s:generic_port[i]."(".s:generic_port[i].")"
                 endif
                 if i != s:generic_count - 1
                     let instant_part = instant_part.",\n"
                 else 
-                    let instant_part = instant_part."\n\t)\n"
+                    let instant_part = instant_part."\n)\n"
                 endif
                 let i = i + 1
             endwhile
             let instant_part = parameter."\n".instant_part
         endif
-        let instant_part = instant_part."\t".s:ent_name." (\n"
+        let instant_part = instant_part.s:ent_name."(\n"
         let i = 0
         while i < s:port_cout
             if strwidth(s:port[i])<3
-                let instant_part = instant_part."\t\t.".s:port[i]."\t\t\t\t(".s:port[i]
+                let instant_part = instant_part."\t.".s:port[i]."\t\t\t\t(".s:port[i]
             elseif strwidth(s:port[i])<7 && strwidth(s:port[i])>=3
-                let instant_part = instant_part."\t\t.".s:port[i]."\t\t\t(".s:port[i]
+                let instant_part = instant_part."\t.".s:port[i]."\t\t\t(".s:port[i]
             elseif strwidth(s:port[i])>=7 && strwidth(s:port[i])<11
-                let instant_part = instant_part."\t\t.".s:port[i]."\t\t(".s:port[i]
+                let instant_part = instant_part."\t.".s:port[i]."\t\t(".s:port[i]
             elseif strwidth(s:port[i])>=11 && strwidth(s:port[i]) <15
-                let instant_part = instant_part."\t\t.".s:port[i]."\t(".s:port[i]
+                let instant_part = instant_part."\t.".s:port[i]."\t(".s:port[i]
             else
-                let instant_part = instant_part."\t\t.".s:port[i]."(".s:port[i]
+                let instant_part = instant_part."\t.".s:port[i]."(".s:port[i]
             endif
             if i != s:port_cout - 1
                 let instant_part = instant_part."),\n"
             else 
-                let instant_part = instant_part.")\n\t);\n\n"
+                let instant_part = instant_part.")\n);\n\n"
             endif
             let i = i + 1
         endwhile
@@ -953,10 +947,10 @@ function Instant_Part_Build(lang)
 endfunction
 
 "------------------------------------------------------------------------
-"Function    : Inport_Part_Build(lang) 
+"Function    : HDL_Inport_Part(lang) 
 "Decription  : inport part 
 "------------------------------------------------------------------------
-function Inport_Part_Build(lang)
+function HDL_Inport_Part(lang)
     if a:lang == "vhdl"
         let inport_part = "\t-- Inputs\n"
         let i = 0 
@@ -987,19 +981,19 @@ function Inport_Part_Build(lang)
             let inport_part = inport_part."\n"
         endif
     elseif a:lang == "verilog"
-        let inport_part = "\t// Inputs\n"
+        let inport_part = "// Inputs\n"
         let i = 0
         while i < s:port_cout 
             if s:direction[i] == "in"
                 if s:type[i] =~ '\<std_logic_vector\>'
-                    let inport_part = inport_part."\treg\t\t".Change_to_vlog_type(s:type[i])."\t".s:port[i].";\n"
+                    let inport_part = inport_part."reg\t\t".HDL_Change2vlog(s:type[i])."\t".s:port[i].";\n"
                 else 
-                    let inport_part = inport_part."\treg\t\t\t\t".s:port[i].";\n"
+                    let inport_part = inport_part."reg\t\t\t\t".s:port[i].";\n"
                 endif
             endif
             let i = i + 1
         endwhile
-        if inport_part == "\t// Inputs\n"
+        if inport_part == "// Inputs\n"
             let inport_part = ''
         else 
             let inport_part = inport_part."\n"
@@ -1011,10 +1005,10 @@ function Inport_Part_Build(lang)
 endfunction
 
 "------------------------------------------------------------------------
-"Function    : Outport_Part_Build(lang) 
+"Function    : HDL_Outport_Part(lang) 
 "Decription  : outport part 
 "------------------------------------------------------------------------
-function Outport_Part_Build(lang)
+function HDL_Outport_Part(lang)
     if a:lang == "vhdl"
         let outport_part = "\t-- Outputs\n"
         let i = 0 
@@ -1041,19 +1035,19 @@ function Outport_Part_Build(lang)
             let outport_part = outport_part."\n"
         endif
     elseif a:lang == "verilog"
-        let outport_part = "\t// Outputs\n"
+        let outport_part = "// Outputs\n"
         let i = 0
         while i < s:port_cout 
             if s:direction[i] == "out"
                 if s:type[i] =~ '\<std_logic_vector\>'
-                    let outport_part = outport_part."\twire\t".Change_to_vlog_type(s:type[i])."\t".s:port[i].";\n"
+                    let outport_part = outport_part."wire\t".HDL_Change2vlog(s:type[i])."\t".s:port[i].";\n"
                 else 
-                    let outport_part = outport_part."\twire\t\t\t".s:port[i].";\n"
+                    let outport_part = outport_part."wire\t\t\t".s:port[i].";\n"
                 endif
             endif
             let i = i + 1
         endwhile
-        if outport_part == "\t// Outputs\n"
+        if outport_part == "// Outputs\n"
             let outport_part = ''
         else 
             let outport_part = outport_part."\n"
@@ -1065,10 +1059,10 @@ function Outport_Part_Build(lang)
 endfunction
 "
 "------------------------------------------------------------------------
-"Function    : Inoutport_Part_Build(lang) 
+"Function    : HDL_Inoutport_Part(lang) 
 "Decription  : inoutport part 
 "------------------------------------------------------------------------
-function Inoutport_Part_Build(lang)
+function HDL_Inoutport_Part(lang)
     if a:lang == "vhdl"
         let inoutport_part = "\t-- Inout\n"
         let i = 0 
@@ -1095,19 +1089,19 @@ function Inoutport_Part_Build(lang)
             let inoutport_part = inoutport_part."\n"
         endif
     elseif a:lang == "verilog"
-        let inoutport_part = "\t// Inout\n"
+        let inoutport_part = "// Inout\n"
         let i = 0
         while i < s:port_cout 
             if s:direction[i] == "inout"
                 if s:type[i] =~ '\<std_logic_vector\>'
-                    let inoutport_part = inoutport_part."\twire\t".Change_to_vlog_type(s:type[i])."\t".s:port[i].";\n"
+                    let inoutport_part = inoutport_part."wire\t".HDL_Change2vlog(s:type[i])."\t".s:port[i].";\n"
                 else 
-                    let inoutport_part = inoutport_part."\twire\t\t\t".s:port[i].";\n"
+                    let inoutport_part = inoutport_part."wire\t\t\t".s:port[i].";\n"
                 endif
             endif
             let i = i + 1
         endwhile
-        if inoutport_part == "\t// Inout\n"
+        if inoutport_part == "// Inout\n"
             let inoutport_part = ''
         else 
             let inoutport_part = inoutport_part."\n"
@@ -1119,37 +1113,37 @@ function Inoutport_Part_Build(lang)
 endfunction
 
 "------------------------------------------------------------------------------
-"Function  : Component_Build() 
+"Function  : HDL_Component_Build() 
 "Arguments : Open a new window and put component information on it ;
-"            The information also put in the register +.
+"            The information also put in the register *.
 "------------------------------------------------------------------------------
-function Component_Build(type)
+function HDL_Component_Build(type)
     if a:type == ''
-        echo "Do not set \"type\""
+        echo "You haven't set \"type\""
         return
     endif
 "    get information of the entity
-    if !Get_Information_Of_Entity() 
+    if !HDL_Entity_Information() 
         echo "Can't Get the information"
         return
     endif
 "    build the component information
     if a:type == "vhdl"
-        let component_part = Component_Part_Build("vhdl")."\n"
+        let component_part = HDL_Component_Part("vhdl")
     elseif a:type == "verilog"
         let component_part = ''
     endif
-    let inport_part = Inport_Part_Build(a:type)
-    let outport_part = Outport_Part_Build(a:type)
-    let inoutport_part = Inoutport_Part_Build(a:type)
-    let instant_part = Instant_Part_Build(a:type)
+    let inport_part = HDL_Inport_Part(a:type)
+    let outport_part = HDL_Outport_Part(a:type)
+    let inoutport_part = HDL_Inoutport_Part(a:type)
+    let instant_part = HDL_Instant_Part(a:type)
     let all_part = component_part.inport_part.outport_part.inoutport_part.instant_part
-"    let @+ = all_part
+    " let @+ = all_part
     let @* = all_part
-"    build component window
+    "build component window
     let sp_op = ''
-    if exists('g:RightB_Commponent')
-        if g:RightB_Commponent
+    if exists('g:HDL_RightB_Commponent')
+        if g:HDL_RightB_Commponent
             let sp_op = "rightbelow vertical "
         else 
             let sp_op = "vertical "
@@ -1157,9 +1151,9 @@ function Component_Build(type)
     endif
     exe sp_op."split __Instant_File__"
     if sp_op == ''
-        exe "resize ".g:Height_of_Component
+        exe "resize ".g:HDL_Height_of_Component
     else
-        exe "vertical resize ".g:Width_of_Component
+        exe "vertical resize ".g:HDL_Width_of_Component
     endif
     silent put! =all_part
     exe "normal gg"
@@ -1175,23 +1169,23 @@ endfunction
 
 
 "-----------------------------------------------------------------------
-"Function    : Tb_Vhdl_Build() 
+"Function    : HDL_Tb_Build() 
 "Decription  :  
 "------------------------------------------------------------------------
-function Tb_Vhdl_Build(type)
+function HDL_Tb_Build(type)
     if a:type == ''
         echo "Do not set \"type\""
         return
     endif
 "  Check the file type
-    if !Check_File_Type()
+    if !HDL_Check_Filetype()
         echohl ErrorMsg
         echo    "This file type is not supported!"
         echohl None
         return
     endif
 "    get information of the entity
-    if !Get_Information_Of_Entity() 
+    if !HDL_Entity_Information() 
         echo "Can't Get the information"
         return
     endif
@@ -1222,8 +1216,8 @@ function Tb_Vhdl_Build(type)
         let architecture_part = "module ".tb_ent_name.";\n\n"
         let constant_part = ''
         let half_clk = g:HDL_Clock_Period/2
-        let clock_part = "\t// Clock generate \n\talways # ".half_clk."\t".clk." <= ~".clk.";\n\n"
-        let simulus_part = "\tinitial begin\n\t\t// Initialize Inputs\n"
+        let clock_part = "// Clock generate \nalways # ".half_clk."\t".clk." <= ~".clk.";\n\n"
+        let simulus_part = "initial begin\n\t// Initialize Inputs\n"
         let i = 0
         while i < s:port_cout
             if s:direction[i] == "in"
@@ -1231,16 +1225,16 @@ function Tb_Vhdl_Build(type)
             endif
             let i = i + 1
         endwhile
-        let simulus_part = simulus_part."\n\t\t// Wait 100 ns for global reset to finish\n"
-                    \."\t\t#100;\n\t\trst = 0;\n\n\t\t// Add stimulus here\n\n\t\t#10000;\n"
-                    \."\t\t$stop;\n\n\tend\n\nendmodule\n"
+        let simulus_part = simulus_part."\n\t// Wait 100 ns for global reset to finish\n"
+                    \."\t#100;\n\trst = 0;\n\n\t// Add stimulus here\n\n\t#10000;\n"
+                    \."\t$stop;\n\nend\n\nendmodule\n"
     endif
      "    component part
-    let component_part = Component_Part_Build(a:type)
-    let inport_part = Inport_Part_Build(a:type)
-    let outport_part = Outport_Part_Build(a:type)
-    let inoutport_part = Inoutport_Part_Build(a:type)
-    let instant_part = Instant_Part_Build(a:type)
+    let component_part = HDL_Component_Part(a:type)
+    let inport_part = HDL_Inport_Part(a:type)
+    let outport_part = HDL_Outport_Part(a:type)
+    let inoutport_part = HDL_Inoutport_Part(a:type)
+    let instant_part = HDL_Instant_Part(a:type)
     let all_part = entity_part.architecture_part.component_part.inport_part.outport_part
                 \.inoutport_part.constant_part.instant_part.clock_part.simulus_part
 "    检测文件是否已经存在 
@@ -1279,22 +1273,22 @@ function Tb_Vhdl_Build(type)
 endfunction
 
 "------------------------------------------------------------------------------
-"Function    : LastModified() 
+"Function    : HDL_Last_Modified() 
 "Description : Add modifiled time to the file's annotation  
 "------------------------------------------------------------------------------
-function LastModified()
+function HDL_Last_Modified()
     let l = line("$")
     execute "1," . l . "g/Last Modified\t:/s/Last Modified\t:.*/Last Modified\t: " .
         \ strftime("%Y-%m-%d %H:%M")
 endfunction
-autocmd BufWritePre,FileWritePre *.vhd   ks|call LastModified()|'s
-autocmd BufWritePre,FileWritePre *.v   ks|call LastModified()|'s
+autocmd BufWritePre,FileWritePre *.vhd   ks|call HDL_Last_Modified()|'s
+autocmd BufWritePre,FileWritePre *.v   ks|call HDL_Last_Modified()|'s
 
 "------------------------------------------------------------------------------
-"Function    : CloseComponetFiles() 
+"Function    : HDL_Auto_Close_Component() 
 "Description : Auto Close the Component file when close the vhd file 
 "------------------------------------------------------------------------------
-function CloseComponetFiles()
+function HDL_Auto_Close_Component()
     if bufloaded("__Instant_File__") 
         if bufloaded(g:TagList_title)
             exe "bdelete! __Instant_File__" 
@@ -1304,16 +1298,16 @@ function CloseComponetFiles()
         endif
     endif 
 endfunction
-autocmd BufUnload   *.vhd,*.v call CloseComponetFiles() 
+autocmd BufUnload   *.vhd,*.v call HDL_Auto_Close_Component() 
 
 "-------------------------------------------------------------------------------
 "   FORMAT FUNCTION START  
 "-------------------------------------------------------------------------------
 "-------------------------------------------------------------------------------
-" Function		: Component_Format(start_line,end_line)	
+" Function		: HDL_Component_Format(start_line,end_line)	
 " Description	: format the component part	
 "-------------------------------------------------------------------------------
-function Component_Format(start_line,end_line)
+function HDL_Component_Format(start_line,end_line)
     let end_line = a:end_line
     let curs = a:start_line
     let flag = 0
@@ -1406,10 +1400,10 @@ function Component_Format(start_line,end_line)
 endfunction
 
 "-------------------------------------------------------------------------------
-" Function		: Entity_Format(start_line,end_line)	
+" Function		: HDL_Entity_Format(start_line,end_line)	
 " Description	: format entity part	
 "-------------------------------------------------------------------------------
-function Entity_Format(start_line,end_line)
+function HDL_Entity_Format(start_line,end_line)
     let end_line = a:end_line
     let curs = a:start_line
     while curs <= end_line
@@ -1462,10 +1456,10 @@ function Entity_Format(start_line,end_line)
 endfunction
 
 "-------------------------------------------------------------------------------
-" Function		: Instant_Format(start_line,end_line)	
+" Function		: HDL_Instant_Format(start_line,end_line)	
 " Description	: format the instant part 	
 "-------------------------------------------------------------------------------
-function Instant_Format(start_line,end_line)
+function HDL_Instant_Format(start_line,end_line)
     let end_line = a:end_line
     let curs = a:start_line
     while curs <= end_line
@@ -1539,10 +1533,10 @@ function Instant_Format(start_line,end_line)
 endfunction
         
 "-------------------------------------------------------------------------------
-" Function		: Signal_Format()
+" Function		: HDL_Signal_Format()
 " Description	: format signal 	
 "-------------------------------------------------------------------------------
-function Signal_Format()
+function HDL_Signal_Format()
     normal 0
     exe "s/^/\t/"
     normal wyiw
@@ -1561,10 +1555,10 @@ function Signal_Format()
 endfunction
 
 "-------------------------------------------------------------------------------
-" Function		: Assign_Format()	
+" Function		: HDL_Assign_Format()	
 " Description	: format assign 	
 "-------------------------------------------------------------------------------
-function Assign_Format()
+function HDL_Assign_Format()
     if getline('.') =~ '^\s*--'
         return
     else
@@ -1573,10 +1567,10 @@ function Assign_Format()
 endfunction
 
 "-------------------------------------------------------------------------------
-" Function		: Vhdl_Format()	
+" Function		: HDL_Vhdl_Format()	
 " Description	: Flie Format 	
 "-------------------------------------------------------------------------------
-function Vhdl_Format()
+function HDL_Vhdl_Format()
     "Check if be compile 
     exe "ModSimComp"
     let qfix = getqflist()
@@ -1587,14 +1581,22 @@ function Vhdl_Format()
     endfor
     "mark current position
     exe "ks"
+    set ignorecase
+    if search('\<port\>\_s\+(','w') > 0
+        exe "%s/\\<port\\>\\_s\\+(/port(/g"
+    endif
+    if search('\<map\>\_s\+(','w') > 0
+        exe "%s/\\<map\\>\\s\\+(/map(/g"
+    endif
+    if search('\<generic\>\_s\+(','w') > 0
+        exe "%s/\\<generic\\>\\s\\+(/generic(/g"
+    endif
     "entity part 
-    exe "%s/\\<port\\>\\s\\+(/port(/g"
-    exe "%s/\\<map\\>\\s\\+(/map(/g"
-    let start_line = search('^[^--]*\<entity\>\s\+[a-zA-Z0-9_]*\s\+\<is\>','w')
-    let end_line = search('^[--]*\<entity\>\s\+\([a-zA-Z0-9_]*\)\_.\{-}\zs\<end\>\s\+\1','W')
-    let end_line = Entity_Format(start_line,end_line)
+    let start_line = search('\(--.*\)\@<!\<entity\>\s\+[a-zA-Z0-9_]*\s\+\<is\>','w')
+    let end_line = search('\(--.*\)\@<!\<entity\>\s\+\([a-zA-Z0-9_]*\)\_.\{-}\zs\(--.*\)\@<!\<end\>\s\+\1','W')
+    let end_line = HDL_Entity_Format(start_line,end_line)
     "component part 
-    let start_line = search('^[^--]*\zs\<component\>','W')
+    let start_line = search('\(--.*\)\@<!\zs\<component\>','W')
     let com_name = []
     let ins_num = 0
     if start_line != 0
@@ -1603,7 +1605,7 @@ function Vhdl_Format()
     endif
     while start_line
         let end_line = search('\<end\>\s\+\<component\>','W')
-        let end_line = Component_Format(start_line,end_line)
+        let end_line = HDL_Component_Format(start_line,end_line)
         call cursor(end_line,1)
         let start_line = search('\s*\<component\>\s*;\_.\{-}\zs\<component\>','W')
         if start_line != 0
@@ -1625,7 +1627,7 @@ function Vhdl_Format()
             let flag = 'W'
             normal %
             let end_line = line('.')
-            let end_line = Instant_Format(start_line,end_line)
+            let end_line = HDL_Instant_Format(start_line,end_line)
             let start_line = search('\<port\>\_s\{-}\<map\>\_s\{-}\zs(','W')
             normal %
             let end_line = line('.')
@@ -1641,17 +1643,17 @@ function Vhdl_Format()
             normal %
             let end_line = line('.')
         endif
-        let end_line = Instant_Format(start_line,end_line)
+        let end_line = HDL_Instant_Format(start_line,end_line)
     endwhile
     "signal part 
     normal gg
     while search('^\s*\<signal\>\s*[a-zA-Z0-9_]*\s*:\s*.*;.*$','W')
-        call Signal_Format()
+        call HDL_Signal_Format()
     endwhile
     "assign part
     normal gg
     while search('^\s*[a-zA-Z0-9_]*\s*<=\s*\S*','W')
-        call Assign_Format()
+        call HDL_Assign_Format()
     endwhile
     "all
     echo "Formating...please wait..."
@@ -1659,4 +1661,80 @@ function Vhdl_Format()
     echo "Format....Done"
     exe "'s"
 endfunction
+"-------------------------------------------------------------------------------
+" Function		: HDL_Signal_Dec_Vhdl()	
+" Description	: I modified from a plugin by sunil shukla
+"                 author : sunil shukla
+"                 email: sunilkshukla@gmail.com
+"-------------------------------------------------------------------------------
+function HDL_Signal_Dec_Vhdl()
+    normal yiw
+    normal ma 
+    let curr_pos = line(".")  
+    " let curr_word= getreg('"0') 
+    let curr_word= @0
+    " checks for the begin keyword			
+    normal gg
+    set ignorecase 
+    let flags = "W"
+    let process_line = search('\%^\_.\{-}\zs\(--.*\)\@<!\<process\>','w')
+    if process_line != 0
+        let flags = 'bW'
+    endif
+    let check_for_validity = search('^\s*\<begin\>\s*$', flags)	
+    normal mb
+    if check_for_validity == 0
+        normal `a
+        echo "This is not a valid VHDL file"
+        return
+    endif
+    if curr_pos < check_for_validity 
+        normal `a
+        echo "Not a signal, probably a port"
+        return  
+    endif
+    " checks whether the signal has been already defined 
+    normal gg
+    let flags = "W"
+    while search('\(--.*\)\@<!'.expand(@0), flags) > 0
+        if line(".") < check_for_validity
+            normal `a
+            echo "signal already defined"
+            return
+        endif
+        let flags = "W"
+    endwhile
+    let bit_width = input("Enter the length of signal: ")
+    let bit_width_minus1 = bit_width - 1
+    "let sig_type = input("convention (v - std_logic_vector, s - signed, u - unsigned) : ")
+    let sig_type = 'v' 
+    normal 'b
+    if bit_width == 1
+        normal O
+        exe "s/^/\tsignal\t".expand(@0)."\t: std_logic;/"
+        normal `a
+    elseif bit_width > 1
+        normal O
+        if sig_type == 'v'
+            exe "s/^/\tsignal\t".expand(@0)."\t: std_logic_vector(".bit_width_minus1." downto 0);/"
+        elseif sig_type == 's'
+            exe "s/^/\tsignal ".expand(@0).": signed(".bit_width_minus1." downto 0);/"
+        elseif sig_type == 'u'
+            exe "s/^/\tsignal ".expand(@0).": unsigned(".bit_width_minus1." downto 0);/"
+        else 
+            echo "wrong selection"
+        endif
+        normal `a
+    else
+        normal `a							
+        echo "signal not defined"	
+        return
+    endif
+    return "Done"
+endfunction				
 
+
+"function VHDL_Vhdl_Format()
+"    let start_line = line('v')
+"    call HDL_Component_Format(start_line,start_line)
+"endfunction
