@@ -5,7 +5,7 @@
 " Created On         : 2010-11-02 13:17
 " Last Modified      : 2010-12-08 14:07
 " Description        : vhdl/verilog plugin
-" Version            : v2.1
+" Version            : v2.2
 "
 " history            :  v1.0    创建插件，实现编译，加入注释，文件头等功能 
 "                       v1.1    加入函数Component_Build() 可以实现垂直分割窗口
@@ -44,6 +44,34 @@
 "                       v2.0    现在可以支持同一行多个port了
 "                       v2.1    支持inout端口
 "                               支持verilog模块，可为verilog模块生成testbench和instant
+"                       v2.2    加入格式整理的功能。
+"
+"                               支持component，entity，signal，instant模块。
+"                               尽量使“:,=>”符号对齐。例如：
+"                                   component bufg
+"                                        port( i   : in	std_logic;  
+"                                                o : out	std_logic 
+"                                            );
+"                                    end component;
+"                               整理后变为：
+"                                   component bufg
+"                                       port(
+"                                               i				: in	std_logic;  
+"                                               o				: out	std_logic 
+"                                            );
+"                                   end component;
+"
+"                               整理前会先进行编译。
+"
+"                               对于较大的文件可能时间会有3-4秒延迟。
+"
+"                               变量名字超过16个字符将不留空格。如：
+"                                   cak_ram_char_ch14: out	std_logic_vector(1 downto 0)
+"
+"
+"
+"
+"
 "
 "    hdl_plugin is a plugin that enables you to fast instant and generate a testbench file.
 "    it can help you to compile by modelsim convenient.
@@ -61,6 +89,9 @@
 "    Verilog Instant : Fast instant for verilog.Also add to clipboard
 "    Vhdl Testbench :Generate a vhdl testbench file 
 "    Verilog Testbench :Generate a verilog testbench file
+"    Add a menu list "Format Vhdl File" which can finishing the code.
+"    make ":,=>" in the same position.Support the "component","signal","instant"and "entity" part.
+"    
 
 "    view details:http://www.cnblogs.com/ifys/archive/2010/11/20/1882673.html#
 "    e-mail: achillowy@163.com
@@ -73,7 +104,7 @@ endif
 let b:hdl_plugin = 1
 
 nmenu HDL.Create\ a\ Library<Tab>F6             <Esc>:!vlib work<CR><CR>
-nmenu HDL.Compile\ File<Tab>F7                  :ModSimComp<CR><CR>
+nmenu HDL.Compile\ File<Tab>F7                  <Esc>:ModSimComp<CR><CR>
 nmenu HDL.Add\ File\ Header<Tab>:AddInfo        :AddInfo<CR>
 nmenu HDL.Add\ Content<Tab>:Acontent            :Acontent<CR>
 nmenu HDL.Process<Tab>:ProBuild                 :ProBuild<CR>
@@ -82,16 +113,18 @@ nmenu HDL.Vhdl\ Component<Tab>:CompoB           :CompoB<CR>
 nmenu HDL.Verilog\ Instant<Tab>:InstantV        :InstantV<CR>
 nmenu HDL.Vhdl\ Testbench<Tab>:TbVhdl           :TbVhdl<CR>
 nmenu HDL.Verilog\ Testbench<Tab>:TbVerilog     :TbVerilog<CR>
+nmenu HDL.Format\ Vhdl\ File<Tab>:FormatVHDL    :FormatVHDL<CR> 
 
 command     AddInfo     :call AddFileInformation()
 command     Acontent    :call AddContent()
 command     ProBuild    :call Always_Process_Build("posedge", "posedge")
 command     VhdlEntity  :call Module_Entity_Build()
-command     ModSimComp  :call Model_Sim_Compile()
+command     ModSimComp  :call Model_Sim_Compile()|:cw
 command     CompoB      :call Component_Build("vhdl")
 command     InstantV    :call Component_Build("verilog")
 command     TbVhdl      :call Tb_Vhdl_Build("vhdl")
 command     TbVerilog   :call Tb_Vhdl_Build("verilog")
+command     FormatVHDL  :call Vhdl_Format()
 
 nmap <silent><F7> :ModSimComp<CR><CR>
 nmap <silent><F6> <Esc>:!vlib work<CR><CR>
@@ -128,11 +161,9 @@ function Model_Sim_Compile()
     if Check_File_Type() == 1
         set makeprg=vcom\ -work\ work\ %
         execute "make"
-        execute "cw"
     elseif Check_File_Type() == 2 
         set makeprg=vlog\ -work\ work\ %
         execute "make"
-        execute "cw"
     else
         echohl ErrorMsg
         echo "This filetype can't be compiled by modelsim vcom/vlog!"
@@ -1274,4 +1305,358 @@ function CloseComponetFiles()
     endif 
 endfunction
 autocmd BufUnload   *.vhd,*.v call CloseComponetFiles() 
+
+"-------------------------------------------------------------------------------
+"   FORMAT FUNCTION START  
+"-------------------------------------------------------------------------------
+"-------------------------------------------------------------------------------
+" Function		: Component_Format(start_line,end_line)	
+" Description	: format the component part	
+"-------------------------------------------------------------------------------
+function Component_Format(start_line,end_line)
+    let end_line = a:end_line
+    let curs = a:start_line
+    let flag = 0
+    while curs <= end_line
+        if getline(curs) =~ '\<generic\>'
+            let flag = 1
+        endif
+        if getline(curs) =~ ':\s*\<in\>' || getline(curs) =~ ':\s*\<out\>' || getline(curs) =~ ':\s*\<inout\>'
+            if getline(curs) =~ '^\s*--'
+                let curs = curs + 1
+                continue
+            endif
+            call cursor(curs,1)
+            if getline(curs) =~ '^[^ ].*$'
+                exe "s/^/\t/"
+                normal 0
+            endif
+            normal wyiw
+            if @0 == "port"
+                exe "s/\\<port\\>\\s*(/port(\\r\t/"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            elseif @0 == "("
+                exe "s/^\\s*(/\t(\r\t"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            endif
+            let port_name = @0
+            normal wwyiw
+            let port_direction = @0
+            normal 0dw
+            if strwidth(port_name)<4
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t\t\t\t: ".port_direction."\t/"
+            elseif strwidth(port_name)<8 && strwidth(port_name)>=4
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t\t\t: ".port_direction."\t/"
+            elseif strwidth(port_name)<12 && strwidth(port_name)>=8
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t\t: ".port_direction."\t/"
+            elseif strwidth(port_name)<16 && strwidth(port_name)>=12
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t: ".port_direction."\t/"
+            elseif strwidth(port_name)>=16
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name.": ".port_direction."\t/"
+            endif
+        elseif getline(curs) =~ ':' && flag == 1
+             if getline(curs) =~ '^\s*--'
+                let curs = curs + 1
+                continue
+            endif
+            call cursor(curs,1)
+            if getline(curs) =~ '^[^ ].*$'
+                exe "s/^/\t/"
+                normal 0
+            endif
+            normal wyiw
+            if @0 == "generic"
+                exe "s/\\<generic\\>\\s*(/generic(\\r\t/"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            elseif @0 == "("
+"                exe "s/^\\s*(/\t(\r\t"
+                normal kJ
+                let end_line = end_line - 1
+                let curs = curs - 1
+                continue
+            endif
+            let port_name = @0
+            normal 0dw
+            if strwidth(port_name)<4
+                exe "s/\\<".port_name."\\>\\s*:\\s*/".port_name."\t\t\t\t:\t/"
+            elseif strwidth(port_name)<8 && strwidth(port_name)>=4
+                exe "s/\\<".port_name."\\>\\s*:\\s*/".port_name."\t\t\t:\t/"
+            elseif strwidth(port_name)<12 && strwidth(port_name)>=8
+                exe "s/\\<".port_name."\\>\\s*:\\s*/".port_name."\t\t:\t/"
+            elseif strwidth(port_name)<16 && strwidth(port_name)>=12
+                exe "s/\\<".port_name."\\>\\s*:\\s*/".port_name."\t:\t/"
+            elseif strwidth(port_name)>=16
+                exe "s/\\<".port_name."\\>\\s*:\\s*/".port_name.":\t/"
+            endif
+        endif
+        let curs = curs + 1
+    endwhile
+    return end_line
+endfunction
+
+"-------------------------------------------------------------------------------
+" Function		: Entity_Format(start_line,end_line)	
+" Description	: format entity part	
+"-------------------------------------------------------------------------------
+function Entity_Format(start_line,end_line)
+    let end_line = a:end_line
+    let curs = a:start_line
+    while curs <= end_line
+        if getline(curs) =~ ':\s*\<in\>' || getline(curs) =~ ':\s*\<out\>' || getline(curs) =~ ':\s*\<inout\>'
+            if getline(curs) =~ '^\s*--'
+                let curs = curs + 1
+                continue
+            endif
+            call cursor(curs,1)
+            if getline(curs) =~ '^[^ ].*$'
+                exe "s/^/\t/"
+                normal 0
+            endif
+            normal wyiw
+            if @0 == "port"
+                exe "s/\\<port\\>\s*(/port(\\r\t/"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            elseif @0 == "("
+                exe "s/^\\s*(/\t(\r\t"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            endif
+            let port_name = @0
+            normal wwyiw
+            let port_direction = @0
+            normal 0dw
+            if strwidth(port_name)<4
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t\t\t\t: ".port_direction."\t/"
+            elseif strwidth(port_name)<8 && strwidth(port_name)>=4
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t\t\t: ".port_direction."\t/"
+            elseif strwidth(port_name)<12 && strwidth(port_name)>=8
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t\t: ".port_direction."\t/"
+            elseif strwidth(port_name)<16 && strwidth(port_name)>=12
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name."\t: ".port_direction."\t/"
+            elseif strwidth(port_name)>=16
+                exe "s/\\<".port_name."\\>\\s*:\\s*\\<".port_direction."\\>\\s\\+/"
+                            \.port_name.": ".port_direction."\t/"
+            endif
+        endif
+        let curs = curs + 1
+    endwhile
+    return end_line
+endfunction
+
+"-------------------------------------------------------------------------------
+" Function		: Instant_Format(start_line,end_line)	
+" Description	: format the instant part 	
+"-------------------------------------------------------------------------------
+function Instant_Format(start_line,end_line)
+    let end_line = a:end_line
+    let curs = a:start_line
+    while curs <= end_line
+        if getline(curs) =~ '=>'
+            if getline(curs) =~ '^\s*--'
+                let curs = curs + 1
+                continue
+            endif
+"            if getline(curs) =~ '^\s*$'
+"                let curs = curs + 1
+"                continue
+"            endif
+            call cursor(curs,1)
+            if getline(curs) =~ '^[^ ].*$'
+                exe "s/^/\t/"
+                normal 0
+            endif
+            normal wyiw
+            if @0 == "port"
+                exe "s/\\<port\\>\\s\\+\\<map\\>\\s*(/port map(\\r\t/"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            elseif @0 == "generic"
+                exe "s/\\<generic\\>\\s\\+\\<map\\>\\s*(/generic map(\\r\t/"
+                let end_line = end_line + 1
+                let curs = curs + 1
+                continue
+            elseif @0 == "map"
+                normal kJ
+"                exe "s/\\<port\\>\\s\\+\\<map\\>\s*(/port map(\\r\t/"
+"                exe "normal 0|s/\\<port\\>\s\+\\<map\\>\s*(/port map(\\r\t/"
+                let end_line = end_line - 1
+                let curs = curs - 1
+                continue
+"                let curs = curs + 1
+"                continue
+            elseif @0 == "("
+                normal kJ
+"                exe "normal J|s/\\<port\\>\\s\\+\\<map\\>\s*(/port map(\\r\t/"
+"                exe "normal 0|s/\\<port\\>\s\+\\<map\\>\s*(/port map(\\r\t/"
+                let end_line = end_line - 1
+                let curs = curs - 1
+                continue
+"                let curs = curs + 1
+"                continue
+            endif
+            let port = @0
+"            normal wwyiw
+"            let connect_port = @0
+            normal 0dw
+            if strwidth(port)<4
+"                exe "s/^".port."\\s*=>\\s*".connect_port."/".port."\t\t\t\t=> ".connect_port."/"
+                exe "s/^".port."\\s*=>\\s*/".port."\t\t\t\t=> /"
+            elseif strwidth(port)>=4 && strwidth(port)<8
+"                exe "s/^".port."\\s*=>\\s*".connect_port."/".port."\t\t\t=> ".connect_port."/"
+                exe "s/^".port."\\s*=>\\s*/".port."\t\t\t=> /"
+            elseif strwidth(port)>=8 && strwidth(port)<12
+"                exe "s/^".port."\\s*=>\\s*".connect_port."/".port."\t\t=> ".connect_port."/"
+                exe "s/^".port."\\s*=>\\s*/".port."\t\t=> /"
+            elseif strwidth(port)>=12 && strwidth(port)<16
+"                exe "s/^".port."\\s*=>\\s*".connect_port."/".port."\t=> ".connect_port."/"
+                exe "s/^".port."\\s*=>\\s*/".port."\t=> /"
+            elseif strwidth(port)>=16 
+                exe "s/^".port."\\s*=>\\s*/".port."=> /"
+            endif
+        endif
+        let curs = curs + 1
+    endwhile
+    return end_line
+endfunction
+        
+"-------------------------------------------------------------------------------
+" Function		: Signal_Format()
+" Description	: format signal 	
+"-------------------------------------------------------------------------------
+function Signal_Format()
+    normal 0
+    exe "s/^/\t/"
+    normal wyiw
+    let signal_name = @0
+    if strwidth(signal_name)<4
+        exe "s/^\\s*\\<signal\\>\\s*".signal_name."\\s*:\\s*/signal\t".signal_name."\t\t\t\t: /"
+    elseif strwidth(signal_name)>=4 && strwidth(signal_name)<8
+        exe "s/^\\s*\\<signal\\>\\s*".signal_name."\\s*:\\s*/signal\t".signal_name."\t\t\t: /"
+    elseif strwidth(signal_name)>=8 && strwidth(signal_name)<12
+        exe "s/^\\s*\\<signal\\>\\s*".signal_name."\\s*:\\s*/signal\t".signal_name."\t\t: /"
+    elseif strwidth(signal_name)>=12 && strwidth(signal_name)<16
+        exe "s/^\\s*\\<signal\\>\\s*".signal_name."\\s*:\\s*/signal\t".signal_name."\t: /"
+    elseif strwidth(signal_name)>=16 
+        exe "s/^\\s*\\<signal\\>\\s*".signal_name."\\s*:\\s*/signal\t".signal_name.": /"
+    endif
+endfunction
+
+"-------------------------------------------------------------------------------
+" Function		: Assign_Format()	
+" Description	: format assign 	
+"-------------------------------------------------------------------------------
+function Assign_Format()
+    if getline('.') =~ '^\s*--'
+        return
+    else
+        exe "s/\\([a-zA-Z0-9_]*\\)\\s*<=\\s*\\(\\S*\\)/\\1\t<= \\2/"
+    endif
+endfunction
+
+"-------------------------------------------------------------------------------
+" Function		: Vhdl_Format()	
+" Description	: Flie Format 	
+"-------------------------------------------------------------------------------
+function Vhdl_Format()
+    "Check if be compile 
+    exe "ModSimComp"
+    let qfix = getqflist()
+    for q_valid in getqflist()
+        if q_valid.valid != 0
+            return
+        endif
+    endfor
+    "mark current position
+    exe "ks"
+    "entity part 
+    exe "%s/\\<port\\>\\s\\+(/port(/g"
+    exe "%s/\\<map\\>\\s\\+(/map(/g"
+    let start_line = search('^[^--]*\<entity\>\s\+[a-zA-Z0-9_]*\s\+\<is\>','w')
+    let end_line = search('^[--]*\<entity\>\s\+\([a-zA-Z0-9_]*\)\_.\{-}\zs\<end\>\s\+\1','W')
+    let end_line = Entity_Format(start_line,end_line)
+    "component part 
+    let start_line = search('^[^--]*\zs\<component\>','W')
+    let com_name = []
+    let ins_num = 0
+    if start_line != 0
+        normal wyiw
+        call add(com_name,@0)
+    endif
+    while start_line
+        let end_line = search('\<end\>\s\+\<component\>','W')
+        let end_line = Component_Format(start_line,end_line)
+        call cursor(end_line,1)
+        let start_line = search('\s*\<component\>\s*;\_.\{-}\zs\<component\>','W')
+        if start_line != 0
+            normal wyiw
+            call add(com_name,@0)
+            let ins_num = ins_num + 1
+        endif
+    endwhile
+    "instant part 
+    let i = 0
+    call search('\<begin\>','w')
+    let flag = 'w'
+    while i <= ins_num
+        if ins_num == 0
+            break
+        endif
+        let start_line = search(':\s*\<'.com_name[i].'\>\_s\{-}\<generic\>\_s\{-}\<map\>\_s\{-}\zs(',flag)
+        if start_line != 0
+            let flag = 'W'
+            normal %
+            let end_line = line('.')
+            let end_line = Instant_Format(start_line,end_line)
+            let start_line = search('\<port\>\_s\{-}\<map\>\_s\{-}\zs(','W')
+            normal %
+            let end_line = line('.')
+        else
+            let start_line = search(':\s*\<'.com_name[i].'\>\_s\{-}\<port\>\_s\{-}\<map\>\_s\{-}\zs(',flag)
+            if start_line != 0
+                let flag = 'W'
+            else 
+                let flag = 'w'
+                let i = i + 1
+                continue
+            endif
+            normal %
+            let end_line = line('.')
+        endif
+        let end_line = Instant_Format(start_line,end_line)
+    endwhile
+    "signal part 
+    normal gg
+    while search('^\s*\<signal\>\s*[a-zA-Z0-9_]*\s*:\s*.*;.*$','W')
+        call Signal_Format()
+    endwhile
+    "assign part
+    normal gg
+    while search('^\s*[a-zA-Z0-9_]*\s*<=\s*\S*','W')
+        call Assign_Format()
+    endwhile
+    "all
+    echo "Formating...please wait..."
+    normal gg=G=G
+    echo "Format....Done"
+    exe "'s"
+endfunction
 
