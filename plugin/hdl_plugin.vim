@@ -5,7 +5,7 @@
 " Created On         : 2010-11-02 13:17
 " Last Modified      : 2010-12-08 14:07
 " Description        : vhdl/verilog plugin
-" Version            : v2.3
+" Version            : v2.4
 "
 " history            :  v1.0    创建插件，实现编译，加入注释，文件头等功能 
 "                       v1.1    加入函数HDL_Component_Build() 可以实现垂直分割窗口
@@ -73,6 +73,7 @@
 "                               会询问signal长度。很好用。
 "                               Fixed Some Bugs.
 "                               Redifined The function name.
+"                       v2.4    Fixed Some Bugs.
 "
 "
 "
@@ -102,7 +103,7 @@
 "    Use <leader>, to fast define signal.
 "
 "    view details:http://www.cnblogs.com/ifys/archive/2010/11/20/1882673.html#
-"    e-mail: achillowy@163.com
+"    e-mail: ifys0325@163.com
 "    Welcome to post your suggestions to me.
 "                      
 "------------------------------------------------------------------------------
@@ -1221,7 +1222,7 @@ function HDL_Tb_Build(type)
         let i = 0
         while i < s:port_cout
             if s:direction[i] == "in"
-                let simulus_part = simulus_part."\t\t".s:port[i]." = 0;\n"
+                let simulus_part = simulus_part."\t".s:port[i]." = 0;\n"
             endif
             let i = i + 1
         endwhile
@@ -1479,12 +1480,12 @@ function HDL_Instant_Format(start_line,end_line)
             endif
             normal wyiw
             if @0 == "port"
-                exe "s/\\<port\\>\\s\\+\\<map\\>\\s*(/port map(\\r\t/"
+                exe "s/\\<port\\>\\_s\\+\\<map\\>\\_s*(/port map(\\r\t/"
                 let end_line = end_line + 1
                 let curs = curs + 1
                 continue
             elseif @0 == "generic"
-                exe "s/\\<generic\\>\\s\\+\\<map\\>\\s*(/generic map(\\r\t/"
+                exe "s/\\<generic\\>\\_s\\+\\<map\\>\\_s*(/generic map(\\r\t/"
                 let end_line = end_line + 1
                 let curs = curs + 1
                 continue
@@ -1586,13 +1587,13 @@ function HDL_Vhdl_Format()
         exe "%s/\\<port\\>\\_s\\+(/port(/g"
     endif
     if search('\<map\>\_s\+(','w') > 0
-        exe "%s/\\<map\\>\\s\\+(/map(/g"
+        exe "%s/\\<map\\>\\_s\\+(/map(/g"
     endif
     if search('\<generic\>\_s\+(','w') > 0
-        exe "%s/\\<generic\\>\\s\\+(/generic(/g"
+        exe "%s/\\<generic\\>\\_s\\+(/generic(/g"
     endif
     "entity part 
-    let start_line = search('\(--.*\)\@<!\<entity\>\s\+[a-zA-Z0-9_]*\s\+\<is\>','w')
+    let start_line = search('\(--.*\)\@<!\<entity\>\s\+[a-zA-Z0-9_]*\_s\+\<is\>','w')
     let end_line = search('\(--.*\)\@<!\<entity\>\s\+\([a-zA-Z0-9_]*\)\_.\{-}\zs\(--.*\)\@<!\<end\>\s\+\1','W')
     let end_line = HDL_Entity_Format(start_line,end_line)
     "component part 
@@ -1602,6 +1603,7 @@ function HDL_Vhdl_Format()
     if start_line != 0
         normal wyiw
         call add(com_name,@0)
+        let ins_num = ins_num + 1
     endif
     while start_line
         let end_line = search('\<end\>\s\+\<component\>','W')
@@ -1622,7 +1624,7 @@ function HDL_Vhdl_Format()
         if ins_num == 0
             break
         endif
-        let start_line = search(':\s*\<'.com_name[i].'\>\_s\{-}\<generic\>\_s\{-}\<map\>\_s\{-}\zs(',flag)
+        let start_line = search(':\s*\<'.com_name[i-1].'\>\_s\{-}\<generic\>\_s\{-}\<map\>\_s\{-}\zs(',flag)
         if start_line != 0
             let flag = 'W'
             normal %
@@ -1632,7 +1634,7 @@ function HDL_Vhdl_Format()
             normal %
             let end_line = line('.')
         else
-            let start_line = search(':\s*\<'.com_name[i].'\>\_s\{-}\<port\>\_s\{-}\<map\>\_s\{-}\zs(',flag)
+            let start_line = search(':\s*\<'.com_name[i-1].'\>\_s\{-}\<port\>\_s\{-}\<map\>\_s\{-}\zs(',flag)
             if start_line != 0
                 let flag = 'W'
             else 
