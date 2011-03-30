@@ -5,55 +5,55 @@
 " Created On         : 2010-11-02 13:17
 " Last Modified      : 2010-12-08 14:07
 " Description        : vhdl/verilog plugin
-" Version            : v2.4
+" Version            : v2.5
 "
-" history            :  v1.0    åˆ›å»ºæ’ä»¶ï¼Œå®ç°ç¼–è¯‘ï¼ŒåŠ å…¥æ³¨é‡Šï¼Œæ–‡ä»¶å¤´ç­‰åŠŸèƒ½ 
-"                       v1.1    åŠ å…¥å‡½æ•°HDL_Component_Build() å¯ä»¥å®ç°å‚ç›´åˆ†å‰²çª—å£
-"                               ç”Ÿæˆcomponentä¿¡æ¯
-"                       v1.2    åŠ å…¥å‡½æ•°Tb_Build() å¯ä»¥ä¸ºvhdlæ¨¡å—ç”Ÿæˆtestbenchæ–‡æ¡£
-"                       v1.3    1 ç”Ÿæˆè¿›ç¨‹çš„å‘½ä»¤æ”¹ä¸ºï¼šProBuild
-"                               2 åŠ å…¥å‡½æ•°HDL_Tb_Build(type) å‡½æ•°
-"                                   ä»£æ›¿å‡½æ•°Tb_Build() 
-"                                   ä¿®æ”¹äº†testbenchæ–‡æ¡£çš„ç”Ÿæˆæ–¹å¼
-"                                   åŠŸèƒ½ï¼šå¯ä»¥ç”Ÿæˆvhdlæ¨¡å—çš„vhdl testbenchæˆ–è€… verilog testbench
-"                               3 ä¿®æ”¹äº†HDL_Component_Build()å‡½æ•°
-"                                   ä¿®æ”¹äº†componentçš„ç”Ÿæˆæ–¹å¼
-"                               4 ä»£ç é£æ ¼åšäº†ä¸€äº›ä¿®æ”¹
-"                               5 ä¿®æ”¹äº†å…‰æ ‡ä½ç½®
-"                       v1.4    ä¿®æ”¹äº†HDL_Tb_Build(type)å‡½æ•° ä½¿ç”Ÿæˆçš„componentæŒ‰åŸä¿¡å·é¡ºåºæ’åˆ—
-"                       v1.5    åŠ å…¥èœå•
-"                       v1.6    ä¼˜åŒ–ç¨‹åº
-"                       v1.7    HDL_Component_Buildå¯ä»¥ç”¨å˜é‡å®šä¹‰é€‰æ‹©instantçª—å£çš„æ–¹å¼
-"                               ä¸å®šä¹‰ g:HDL_RightB_Commponent  åˆ™æ°´å¹³åˆ†å‰²æ‰“å¼€
-"                               g:HDL_RightB_Commponent = 1 åŸæ–‡ä»¶å³ä¾§å‚ç›´æ‰“å¼€
-"                               g:HDL_RightB_Commponent = 0 åŸæ–‡ä»¶å·¦ä¾§å‚ç›´æ‰“å¼€
-"                       v1.8    ä¿®æ”¹äº†ä¸€äº›é”™è¯¯
-"                       v1.9    1 ä¿®æ”¹äº†HDL_Add_File_Information()å’ŒHDL_Add_Content()å‡½æ•°
-"                               2 åŠ å…¥å˜é‡g:HDL_Author g:HDL_Company g:HDL_Verilog_Timescale
-"                                 å¯ä»¥åœ¨vimrcä¸­æ·»åŠ è®¾ç½®,ä¾‹å¦‚:
+" history            :  v1.0    ´´½¨²å¼ş£¬ÊµÏÖ±àÒë£¬¼ÓÈë×¢ÊÍ£¬ÎÄ¼şÍ·µÈ¹¦ÄÜ 
+"                       v1.1    ¼ÓÈëº¯ÊıHDL_Component_Build() ¿ÉÒÔÊµÏÖ´¹Ö±·Ö¸î´°¿Ú
+"                               Éú³ÉcomponentĞÅÏ¢
+"                       v1.2    ¼ÓÈëº¯ÊıTb_Build() ¿ÉÒÔÎªvhdlÄ£¿éÉú³ÉtestbenchÎÄµµ
+"                       v1.3    1 Éú³É½ø³ÌµÄÃüÁî¸ÄÎª£ºProBuild
+"                               2 ¼ÓÈëº¯ÊıHDL_Tb_Build(type) º¯Êı
+"                                   ´úÌæº¯ÊıTb_Build() 
+"                                   ĞŞ¸ÄÁËtestbenchÎÄµµµÄÉú³É·½Ê½
+"                                   ¹¦ÄÜ£º¿ÉÒÔÉú³ÉvhdlÄ£¿éµÄvhdl testbench»òÕß verilog testbench
+"                               3 ĞŞ¸ÄÁËHDL_Component_Build()º¯Êı
+"                                   ĞŞ¸ÄÁËcomponentµÄÉú³É·½Ê½
+"                               4 ´úÂë·ç¸ñ×öÁËÒ»Ğ©ĞŞ¸Ä
+"                               5 ĞŞ¸ÄÁË¹â±êÎ»ÖÃ
+"                       v1.4    ĞŞ¸ÄÁËHDL_Tb_Build(type)º¯Êı Ê¹Éú³ÉµÄcomponent°´Ô­ĞÅºÅË³ĞòÅÅÁĞ
+"                       v1.5    ¼ÓÈë²Ëµ¥
+"                       v1.6    ÓÅ»¯³ÌĞò
+"                       v1.7    HDL_Component_Build¿ÉÒÔÓÃ±äÁ¿¶¨ÒåÑ¡Ôñinstant´°¿ÚµÄ·½Ê½
+"                               ²»¶¨Òå g:HDL_RightB_Commponent  ÔòË®Æ½·Ö¸î´ò¿ª
+"                               g:HDL_RightB_Commponent = 1 Ô­ÎÄ¼şÓÒ²à´¹Ö±´ò¿ª
+"                               g:HDL_RightB_Commponent = 0 Ô­ÎÄ¼ş×ó²à´¹Ö±´ò¿ª
+"                       v1.8    ĞŞ¸ÄÁËÒ»Ğ©´íÎó
+"                       v1.9    1 ĞŞ¸ÄÁËHDL_Add_File_Information()ºÍHDL_Add_Content()º¯Êı
+"                               2 ¼ÓÈë±äÁ¿g:HDL_Author g:HDL_Company g:HDL_Verilog_Timescale
+"                                 ¿ÉÒÔÔÚvimrcÖĞÌí¼ÓÉèÖÃ,ÀıÈç:
 "                                   let g:HDL_Company = "Vorx"
 "                                   let g:HDL_Author = "ChenYong"
 "                                   let g:HDL_Verilog_Timescale = " 1ns / 1ns"
-"                               3 åŠ å…¥genericéƒ¨åˆ† ä½¿å¯è¯†åˆ«generic
-"                               4 åŠ å…¥g:HDL_Clock_Period æ—¶é’Ÿå‘¨æœŸå¯è®¾ç½®ï¼Œé»˜è®¤ä¸º64
+"                               3 ¼ÓÈëgeneric²¿·Ö Ê¹¿ÉÊ¶±ğgeneric
+"                               4 ¼ÓÈëg:HDL_Clock_Period Ê±ÖÓÖÜÆÚ¿ÉÉèÖÃ£¬Ä¬ÈÏÎª64
 "                                   let g:HDL_Clock_Period = 64
-"                               5 æš‚æ—¶ä¸æ”¯æŒä¸€è¡Œå¤šä¸ªport
-"                               6 èœå•ä¸­åŠ å…¥compile file é»˜è®¤å¿«æ·é”®ä¸º<F7>
-"                               7 èœå•ä¸­åŠ å…¥vlib work é»˜è®¤å¿«æ·é”®ä¸º<F6>
-"                                   éœ€è¦å®‰è£…modelsimã€‚windowsä¸‹éœ€è®¾ç½®ç¯å¢ƒå˜é‡PATH=$ModelSim\win32
-"                       v2.0    ç°åœ¨å¯ä»¥æ”¯æŒåŒä¸€è¡Œå¤šä¸ªportäº†
-"                       v2.1    æ”¯æŒinoutç«¯å£
-"                               æ”¯æŒverilogæ¨¡å—ï¼Œå¯ä¸ºverilogæ¨¡å—ç”Ÿæˆtestbenchå’Œinstant
-"                       v2.2    åŠ å…¥æ ¼å¼æ•´ç†çš„åŠŸèƒ½ã€‚
+"                               5 ÔİÊ±²»Ö§³ÖÒ»ĞĞ¶à¸öport
+"                               6 ²Ëµ¥ÖĞ¼ÓÈëcompile file Ä¬ÈÏ¿ì½İ¼üÎª<F7>
+"                               7 ²Ëµ¥ÖĞ¼ÓÈëvlib work Ä¬ÈÏ¿ì½İ¼üÎª<F6>
+"                                   ĞèÒª°²×°modelsim¡£windowsÏÂĞèÉèÖÃ»·¾³±äÁ¿PATH=$ModelSim\win32
+"                       v2.0    ÏÖÔÚ¿ÉÒÔÖ§³ÖÍ¬Ò»ĞĞ¶à¸öportÁË
+"                       v2.1    Ö§³Öinout¶Ë¿Ú
+"                               Ö§³ÖverilogÄ£¿é£¬¿ÉÎªverilogÄ£¿éÉú³ÉtestbenchºÍinstant
+"                       v2.2    ¼ÓÈë¸ñÊ½ÕûÀíµÄ¹¦ÄÜ¡£
 "
-"                               æ”¯æŒcomponentï¼Œentityï¼Œsignalï¼Œinstantæ¨¡å—ã€‚
-"                               å°½é‡ä½¿â€œ:,=>â€ç¬¦å·å¯¹é½ã€‚ä¾‹å¦‚ï¼š
+"                               Ö§³Öcomponent£¬entity£¬signal£¬instantÄ£¿é¡£
+"                               ¾¡Á¿Ê¹¡°:,=>¡±·ûºÅ¶ÔÆë¡£ÀıÈç£º
 "                                   component bufg
 "                                        port( i   : in	std_logic;  
 "                                                o : out	std_logic 
 "                                            );
 "                                    end component;
-"                               æ•´ç†åä¸ºï¼š
+"                               ÕûÀíºóÎª£º
 "                                   component bufg
 "                                       port(
 "                                               i				: in	std_logic;  
@@ -61,19 +61,25 @@
 "                                            );
 "                                   end component;
 "
-"                               æ•´ç†å‰ä¼šå…ˆè¿›è¡Œç¼–è¯‘ã€‚
+"                               ÕûÀíÇ°»áÏÈ½øĞĞ±àÒë¡£
 "
-"                               å¯¹äºè¾ƒå¤§çš„æ–‡ä»¶å¯èƒ½æ—¶é—´ä¼šæœ‰3-4ç§’å»¶è¿Ÿ(indentæ“ä½œæ¯”è¾ƒè´¹æ—¶é—´)ã€‚
+"                               ¶ÔÓÚ½Ï´óµÄÎÄ¼ş¿ÉÄÜÊ±¼ä»áÓĞ3-4ÃëÑÓ³Ù(indent²Ù×÷±È½Ï·ÑÊ±¼ä)¡£
 "
-"                               å˜é‡åå­—è¶…è¿‡16ä¸ªå­—ç¬¦å°†ä¸ç•™ç©ºæ ¼ã€‚å¦‚ï¼š
+"                               ±äÁ¿Ãû×Ö³¬¹ı16¸ö×Ö·û½«²»Áô¿Õ¸ñ¡£Èç£º
 "                                   cak_ram_char_ch14: out	std_logic_vector(1 downto 0)
-"                       v2.3    åŠ å…¥äº†ä¸€ä¸ªæ·»åŠ signalçš„å‡½æ•°ï¼Œæ„Ÿè°¢ä½œè€…sunil shuklaã€‚
-"                               æˆ‘ä»…ä¿®æ”¹äº†ä¸€ä¸‹æ­£åˆ™åŒ¹é…æ–¹å¼ï¼Œå’Œæ ‡å¿—beginæŸ¥æ‰¾æ–¹å¼ã€‚
-"                               è®¾å®šå¿«æ·é”®<leader>,,æ·»åŠ ã€‚å…‰æ ‡è¦åœç•™åœ¨æœªå®šä¹‰çš„signalä¸Šã€‚
-"                               ä¼šè¯¢é—®signalé•¿åº¦ã€‚å¾ˆå¥½ç”¨ã€‚
+"                       v2.3    ¼ÓÈëÁËÒ»¸öÌí¼ÓsignalµÄº¯Êı£¬¸ĞĞ»×÷Õßsunil shukla¡£
+"                               ÎÒ½öĞŞ¸ÄÁËÒ»ÏÂÕıÔòÆ¥Åä·½Ê½ºÍ±êÖ¾"begin"µÄ²éÕÒ·½Ê½¡£
+"                               Éè¶¨¿ì½İ¼ü"<leader>,"¡£
+"                               ¹â±êÒªÍ£ÁôÔÚÎ´¶¨ÒåµÄsignalÉÏ¡£
+"                               »áÑ¯ÎÊsignal³¤¶È¡£
+"                               ºÜºÃÓÃ¡£
 "                               Fixed Some Bugs.
 "                               Redifined The function name.
 "                       v2.4    Fixed Some Bugs.
+"                       v2.5    ĞŞ¸´º¯ÊıHDL_Signal_Dec_Vhdl()µÄbug£ºÈç¹ûÓĞcomponentµÄ¶Ë¿ÚÃûºÍsignal
+"                               ÏàÍ¬£¬¾Í»áÌáÊ¾"signal already define".
+"                               ¼ÓÈëHDL_Generic_For_Debussy()º¯Êı£¬¿É½«testbenchÅäºÏDebussyÊ¹ÓÃ¡£
+"                               ¿ìËÙÌí¼ÓÏàÓ¦µÄ´úÂëµ½testbenchÎÄ¼şÖĞ¡£
 "
 "
 "
@@ -119,6 +125,7 @@ if !exists("g:HDL_Menu")
     nmenu HDL.Add\ Content<Tab>:Acontent            :Acontent<CR>
     nmenu HDL.Process/Always<Tab>:ProBuild          :ProBuild<CR>
     nmenu HDL.Entity/Module<Tab>:VhdlEntity         :VhdlEntity<CR>
+    nmenu HDL.Add\ Dump\ for\ Debussy<Tab>:AddFsdb        :AddFsdb<CR>
     nmenu HDL.Vhdl\ Component<Tab>:CompoB           :CompoB<CR> 
     nmenu HDL.Verilog\ Instant<Tab>:InstantV        :InstantV<CR>
     nmenu HDL.Vhdl\ Testbench<Tab>:TbVhdl           :TbVhdl<CR>
@@ -137,13 +144,14 @@ command     TbVhdl      :call HDL_Tb_Build("vhdl")
 command     TbVerilog   :call HDL_Tb_Build("verilog")
 command     FormatVHDL  :call HDL_Vhdl_Format()
 command     SetSignal   :call HDL_Signal_Dec_Vhdl()
+command     AddFsdb     :call HDL_Generic_For_Debussy()
 
 nmap <silent> <unique> <F7> :ModSimComp<CR><CR>
 nmap <silent> <unique> <F6> <Esc>:!vlib work<CR><CR>
 nmap <unique> <leader>, <Esc>:SetSignal<CR>
 
 if !exists("g:HDL_Width_of_Component")
-    let g:HDL_Width_of_Component = "60"
+    let g:HDL_Width_of_Component = "55"
 endif
 
 if !exists("g:HDL_Height_of_Component")
@@ -186,6 +194,7 @@ endfunction
 
 "set error format 
 set errorformat=\*\*\ %tRROR:\ %f(%l):\ %m,\*\*\ %tRROR:\ %m,\*\*\ %tARNING:\ %m,\*\*\ %tOTE:\ %m,%tRROR:\ %f(%l):\ %m,%tARNING\[%*[0-9]\]:\ %f(%l):\ %m,%tRROR:\ %m,%tARNING\[%*[0-9]\]:\ %m
+"compiler modelsim_vcom
 
 "------------------------------------------------------------------------
 "Function    : HDL_Add_File_Information() 
@@ -226,7 +235,7 @@ endfunction
 
 "------------------------------------------------------------------------------
 "Function  : HDL_Add_Content() 
-"Description: åœ¨å…‰æ ‡å½“å‰ä½ç½®æ’å…¥æ³¨é‡Š
+"Description: ÔÚ¹â±êµ±Ç°Î»ÖÃ²åÈë×¢ÊÍ
 "------------------------------------------------------------------------------
 function HDL_Add_Content()
     let file_type_temp = expand("%:e")
@@ -252,8 +261,8 @@ function HDL_Add_Content()
 endfunction
 
 "---------------------------------------------------------------
-"        Verilogä¸­æ’å…¥always
-"        VHDLä¸­æ’å…¥process
+"        VerilogÖĞ²åÈëalways
+"        VHDLÖĞ²åÈëprocess
 "        Add an always or process statement
 "        you must add comment after signal declare 
 "        such as:
@@ -393,14 +402,14 @@ endfunction
 
 "------------------------------------------------------------------------------
 "Function    : HDL_Entity_Module_Build() 
-"Description : åœ¨å½“å‰ä½ç½®æ’å…¥entity
+"Description : ÔÚµ±Ç°Î»ÖÃ²åÈëentity
 "------------------------------------------------------------------------------
 function HDL_Entity_Module_Build()
     let file_type_temp = expand("%:e")
     let ent_name = inputdialog("entity name:")
     if ent_name != ""
         if file_type_temp == "vhd"
-            let all_part = "entity ".ent_name." is\n\tport (\n\n\t);\nend ".ent_name.";\n\narchitecture arc of "
+            let all_part = "entity ".ent_name." is\n\tport(\n\n\t);\nend ".ent_name.";\n\narchitecture arc of "
                         \.ent_name." is\n\n\nbegin\n\nend arc;"
         elseif file_type_temp == "v"
             let all_part = "module ".ent_name."\n(\n\n);\n\nendmodule"
@@ -419,11 +428,11 @@ endfunction
 "Decription  : get position and port map of the entity 
 "------------------------------------------------------------------------
 function HDL_Entity_Information()
-    " ä¿å­˜åˆå§‹ä½ç½®ï¼Œentityè¯»å–å®Œæˆè·³è½¬å›æ¥
+    " ±£´æ³õÊ¼Î»ÖÃ£¬entity¶ÁÈ¡Íê³ÉÌø×ª»ØÀ´
     exe "ks"
     if HDL_Check_Filetype() == 1
         " Get the entity position
-        let first_line = search('\(--.*\)\@<!\<entity\>\_.\{-}\<is\>','w')
+        let first_line = search('\(--.*\)\@<!\<entity\>.\+\<is\>','w')
         if first_line == 0
             echo "Can't Find Start Entity."
             return 0
@@ -437,7 +446,7 @@ function HDL_Entity_Information()
         " entity name 
         let line = getline(first_line)
         let s:ent_name = substitute(line,'^\s*\<entity\>\_s*\(\<[a-zA-Z0-9_]*\>\)\_s*\<is\>.*$',"\\1","")
-        " ç«¯å£çš„é¦–è¡Œå’Œæœ«è¡Œ
+        " ¶Ë¿ÚµÄÊ×ĞĞºÍÄ©ĞĞ
         "let port_start_line = search('\<entity\>\_.\{-}\<is\>\_s*\zs\(--.*\)\@<!\<port\>','w')
         call cursor(first_line,1)
         let port_start_line = search('^\s*\(--.*\)\@<!\<port\>','W',last_line)
@@ -448,7 +457,7 @@ function HDL_Entity_Information()
         endif
         normal %
         let port_last_line = line('.')
-        " æ£€æŸ¥genericçš„é¦–è¡Œå’Œæœ«è¡Œ
+        " ¼ì²égenericµÄÊ×ĞĞºÍÄ©ĞĞ
         call cursor(first_line,1)
         let s:generic_start_line = search('\(--.*\)\@<!\<generic\>','W',last_line)
         if s:generic_start_line != 0
@@ -458,7 +467,7 @@ function HDL_Entity_Information()
             let s:generic_count = 0
             call HDL_Generic_Port(s:generic_start_line,generic_last_line)
         endif
-        " è®¾ç½®3ä¸ªListæ¥å­˜æ”¾ç«¯å£çš„ä¿¡æ¯
+        " ÉèÖÃ3¸öListÀ´´æ·Å¶Ë¿ÚµÄĞÅÏ¢
         let s:port_cout = 0
         let s:port = []
         let s:type = []
@@ -466,39 +475,39 @@ function HDL_Entity_Information()
         let i = port_start_line
         while i <= port_last_line
             let line = getline(i)
-            " å°†è¡Œå°¾çš„;å’Œæœ€åä¸€è¡Œçš„);å»æ‰
+            " ½«ĞĞÎ²µÄ;ºÍ×îºóÒ»ĞĞµÄ);È¥µô
             if i == port_last_line
                 let line = substitute(line,'\s*)\s*;.*$',"","")
             else 
                 let line = substitute(line,'\s*;.*$',"","")
             endif
-            " æ³¨é‡Šè¡Œè·³è¿‡
+            " ×¢ÊÍĞĞÌø¹ı
             if line =~ '^\s*--.*$'
                 let i = i + 1
                 continue
             endif
-            " portå’Œsignalåœ¨ä¸€è¡Œæ—¶åˆ å»port(
+            " portºÍsignalÔÚÒ»ĞĞÊ±É¾È¥port(
             if line =~ '^\s*\<port\>\s*(.*'
                 let line = substitute(line,'^\s*\<port\>\s*(\s*',"","")
             endif
-            " è¡Œé¦–çš„(åˆ æ‰
+            " ĞĞÊ×µÄ(É¾µô
             if line =~ '^\s*(.*$'
                 let line = substitute(line,'^\s*(\s*',"","")
             endif
-            " è¡Œå°¾æœ‰æ³¨é‡Š å…ˆåˆ å»
+            " ĞĞÎ²ÓĞ×¢ÊÍ ÏÈÉ¾È¥
             if line =~ '^.*--.*$'
                 let line = substitute(line,'--.*$',"","")
             endif
-            " åˆ æ‰è¡Œé¦–çš„ç©ºæ ¼
+            " É¾µôĞĞÊ×µÄ¿Õ¸ñ
             let line = substitute(line,'^\s*',"","")
-            " åˆ æ‰è¡Œå°¾ç©ºæ ¼
+            " É¾µôĞĞÎ²¿Õ¸ñ
             let line = substitute(line,'\s*$',"","")
-            " å°†ä¿¡å·æŒ‰é¡ºåºå­˜åœ¨liståˆ—è¡¨ä¸­
+            " ½«ĞÅºÅ°´Ë³Ğò´æÔÚlistÁĞ±íÖĞ
             if line =~ '^.*:\s*\<\%[in]\%[out]\>.*$'
                 let port_t = substitute(line,'\s*:.*$',"","")
                 let type_t =  substitute(line,'^.*:.*\(\<std_logic\%[_vector]\>\%(([^)]*)\)\?\)\s*',"\\1","")
                 let direction_t = substitute(line,'^.*:\s*\(\<[inout]*\>\).*$',"\\1","")
-                " å¦‚æœå¤šä¸ªportåœ¨åŒä¸€è¡Œ
+                " Èç¹û¶à¸öportÔÚÍ¬Ò»ĞĞ
                 if port_t =~ ','
                     let port_t = substitute(port_t,'\s\+',"","g")
                     let comma_pos = [-1]
@@ -524,7 +533,7 @@ function HDL_Entity_Information()
                         let k = k + 1
                     endwhile
                 else
-                    " å°†ç«¯å£ä¿¡æ¯å­˜äºListä¸­
+                    " ½«¶Ë¿ÚĞÅÏ¢´æÓÚListÖĞ
                     call add(s:port,port_t)
                     call add(s:direction,direction_t)
                     call add(s:type,type_t)
@@ -536,18 +545,19 @@ function HDL_Entity_Information()
             endif
             let i = i + 1
         endwhile
+        return last_line
 
     elseif HDL_Check_Filetype() == 2
-        " æ‰¾åˆ°æ–‡ä»¶module
+        " ÕÒµ½ÎÄ¼şmodule
         let module_line = search('\(\/\/.*\)\@<!\<module\>','w')
         if module_line == 0
             echo "Can't Find The Module."
             return 0
         endif
-        " å¾—åˆ°moduleçš„åå­—
+        " µÃµ½moduleµÄÃû×Ö
         let line = getline(module_line)
         let s:ent_name = substitute(line,'\%(\/\/.*\)\@<!\<module\>\s*\(\<[a-zA-Z0-9_]*\>\).*$',"\\1","")
-        " å¯»æ‰¾ä¸‹ä¸€ä¸ªå‡ºç°çš„æ‹¬å·æ¥æ‰¾åˆ°ç«¯å£åˆ—è¡¨çš„é¦–è¡Œå’Œå°¾è¡Œ
+        " Ñ°ÕÒÏÂÒ»¸ö³öÏÖµÄÀ¨ºÅÀ´ÕÒµ½¶Ë¿ÚÁĞ±íµÄÊ×ĞĞºÍÎ²ĞĞ
         if search("(",'W') 
             let first_line = line('.')
             exe "normal %"
@@ -555,7 +565,7 @@ function HDL_Entity_Information()
         elseif
             return 0
         endif
-        " ç«¯å£inputï¼Œoutputç­‰ä¿¡æ¯å­˜äºlist--port_informationä¸­
+        " ¶Ë¿Úinput£¬outputµÈĞÅÏ¢´æÓÚlist--port_informationÖĞ
         let port_information = []
         for line in getline(last_line,line('$'))
             if line =~ '^\s*//'
@@ -565,7 +575,7 @@ function HDL_Entity_Information()
                 call add(port_information,line)
             endif
         endfor
-        " æ‰€æœ‰ç«¯å£å­˜äºportsä¸­
+        " ËùÓĞ¶Ë¿Ú´æÓÚportsÖĞ
         let ports = ''
         for line in getline(first_line,last_line)
             let line = substitute(line,'^.*(\s*',"","")
@@ -573,9 +583,9 @@ function HDL_Entity_Information()
             let ports = ports.line
         endfor
 
-        " å»æ‰ç©ºæ ¼
+        " È¥µô¿Õ¸ñ
         let ports = substitute(ports,'\s\+',"","g")
-        " å¾—åˆ°portsä¸­æ¯ä¸ªé€—å·çš„ä½ç½®ï¼Œå¹¶åŠ å…¥list--comma_pos
+        " µÃµ½portsÖĞÃ¿¸ö¶ººÅµÄÎ»ÖÃ£¬²¢¼ÓÈëlist--comma_pos
         let comma_pos = [-1]
         let j = 1
         while 1
@@ -586,13 +596,13 @@ function HDL_Entity_Information()
             endif
             let j = j + 1
         endwhile  
-        " å°†å„ä¸ªç«¯å£ä¿¡æ¯è½¬æˆvhdlçš„æ–¹å¼å­˜äºlistä¸­
+        " ½«¸÷¸ö¶Ë¿ÚĞÅÏ¢×ª³ÉvhdlµÄ·½Ê½´æÓÚlistÖĞ
         let k = 0
         let s:port = []
         let s:direction = []
         let s:type = []
         let s:port_cout = 0
-        " ç«¯å£åå­—portåŠ å…¥s:portä¸­
+        " ¶Ë¿ÚÃû×Öport¼ÓÈës:portÖĞ
         while k < j 
             if k == j - 1
                 let port = strpart(ports,comma_pos[k]+1) 
@@ -600,7 +610,7 @@ function HDL_Entity_Information()
                 let port = strpart(ports,comma_pos[k]+1,comma_pos[k+1]-comma_pos[k]-1)
             endif
             call add(s:port,port)
-            " åœ¨port_informationä¸­å¯»æ‰¾portï¼Œå¦‚æœæ‰¾åˆ°ï¼Œå°±å°†ç›¸åº”ä¿¡æ¯åŠ å…¥list
+            " ÔÚport_informationÖĞÑ°ÕÒport£¬Èç¹ûÕÒµ½£¬¾Í½«ÏàÓ¦ĞÅÏ¢¼ÓÈëlist
             let num = match(port_information,port)
             if num == -1
                 echo "port ".port."is not define"
@@ -612,7 +622,7 @@ function HDL_Entity_Information()
             elseif port_information[num] =~ '\<inout\>'
                 call add(s:direction,"inout")
             endif
-            " æœ‰é•¿åº¦ä¿¡æ¯çš„[x:y] åˆ™è½¬åŒ–æˆstd_logic_vector(x downto y)å­˜å…¥s:typeï¼Œå¦‚æœæ²¡æœ‰åˆ™ä¸ºstd_logic
+            " ÓĞ³¤¶ÈĞÅÏ¢µÄ[x:y] Ôò×ª»¯³Éstd_logic_vector(x downto y)´æÈës:type£¬Èç¹ûÃ»ÓĞÔòÎªstd_logic
             let len_start = stridx(port_information[num],"[")
             if len_start != -1 
                 let len_end = stridx(port_information[num],"]")
@@ -626,12 +636,12 @@ function HDL_Entity_Information()
             let s:port_cout = s:port_cout + 1
             let k = k + 1
         endwhile
-        " æš‚æ—¶ä¸æ”¯æŒgenericï¼Œè®¾ç½®generic_start_line = 0
+        " ÔİÊ±²»Ö§³Ögeneric£¬ÉèÖÃgeneric_start_line = 0
         let s:generic_start_line = 0
     else 
         return 0
     endif
-    " è·³è½¬å›åˆšåˆšæ ‡è®°çš„åœ°æ–¹
+    " Ìø×ª»Ø¸Õ¸Õ±ê¼ÇµÄµØ·½
     "echo s:port
     "echo s:direction
     "echo s:type
@@ -644,7 +654,7 @@ endfunction
 "Decription  :  
 "------------------------------------------------------------------------
 function HDL_Generic_Port(start_line,last_line)
-    " è®¾ç½®3ä¸ªListæ¥å­˜æ”¾ç«¯å£çš„ä¿¡æ¯
+    " ÉèÖÃ3¸öListÀ´´æ·Å¶Ë¿ÚµÄĞÅÏ¢
     let s:generic_count = 0
     let s:generic_port = []
     let s:generic_type = []
@@ -652,28 +662,33 @@ function HDL_Generic_Port(start_line,last_line)
     let i = a:start_line
     while i <= a:last_line
         let line = getline(i)
-        " ç©ºæ ¼å…ˆåˆ æ‰
-        let line = substitute(line,'\s*',"","g")
-        " æ³¨é‡Šè¡Œè·³è¿‡
+        " ¿Õ¸ñÏÈÉ¾µô
+        if line =~ '\<std_logic_vector\>'
+            let line = substitute(line,'^\s*\(\S\+\)\s*:\s*\(\<std_logic_vector\>([^)]*)\)\s*\(\%[:=]\)\s*\(.*\)\s*$'
+                        \,"\\1:\\2\\3\\4","g")
+        else 
+            let line = substitute(line,'\s*',"","g")
+        endif
+        " ×¢ÊÍĞĞÌø¹ı
         if line =~ '^--.*$'
             let i = i + 1
             continue
         endif
-        " å°†æœ€åçš„;å’Œæœ€åä¸€è¡Œçš„);å»æ‰
+        " ½«×îºóµÄ;ºÍ×îºóÒ»ĞĞµÄ);È¥µô
         if i == a:last_line
             let line = substitute(line,');.*$',"","")
         else 
             let line = substitute(line,';.*$',"","")
         endif
-        " genericå’Œportåœ¨ä¸€è¡Œæ—¶åˆ å»generic(
+        " genericºÍportÔÚÒ»ĞĞÊ±É¾È¥generic(
         if line =~ '^\<generic\>(.*'
             let line = substitute(line,'\<generic\>(',"","")
         endif
-        " (å’Œportåœ¨ä¸€è¡Œæ—¶åˆ å»(
+        " (ºÍportÔÚÒ»ĞĞÊ±É¾È¥(
         if line =~ '^(.*$'
             let line = substitute(line,'(',"","")
         endif
-        " è¡Œå°¾æœ‰æ³¨é‡Š åº”å…ˆåˆ å»
+        " ĞĞÎ²ÓĞ×¢ÊÍ Ó¦ÏÈÉ¾È¥
         if line =~ '^.*--.*$'
             let line = substitute(line,'--.*$',"","")
         endif
@@ -682,10 +697,10 @@ function HDL_Generic_Port(start_line,last_line)
         if pos_1 != -1
             let pos_2 = stridx(line,":=")
             let generic_port_t = strpart(line,0,pos_1)
-            if pos_2 == -1 "æ²¡æœ‰åˆå€¼çš„æƒ…å†µ
+            if pos_2 == -1 "Ã»ÓĞ³õÖµµÄÇé¿ö
                 let generic_type_t = strpart(line,pos_1+1)
                 let generic_value_t = ""
-            else "æœ‰åˆå€¼
+            else "ÓĞ³õÖµ
                 let generic_type_t = strpart(line,pos_1+1,pos_2-pos_1-1)
                 let generic_value_t = strpart(line,pos_2+2)
             endif
@@ -696,6 +711,9 @@ function HDL_Generic_Port(start_line,last_line)
         endif
         let i = i + 1
     endwhile
+"    echo s:generic_port
+"    echo s:generic_value
+"    echo s:generic_type
 endfunction
 
 "------------------------------------------------------------------------
@@ -781,19 +799,19 @@ function HDL_Component_Part(lang)
                                 \."\t\t\t\t: ".s:generic_type[i]."\t"
                 elseif strwidth(s:generic_port[i])<8 && strwidth(s:generic_port[i])>=4
                     let component_part = component_part."\t\t\t\t".s:generic_port[i]
-                                \."\t\t\t: ".s:generic_type[i]."\t"
+                                \."\t\t\t: ".s:generic_type[i]
                 elseif strwidth(s:generic_port[i])<12 && strwidth(s:generic_port[i])>=8
                     let component_part = component_part."\t\t\t\t".s:generic_port[i]
-                                \."\t\t: ".s:generic_type[i]."\t"
+                                \."\t\t: ".s:generic_type[i]
                 elseif strwidth(s:generic_port[i])<16 && strwidth(s:generic_port[i])>=12
                     let component_part = component_part."\t\t\t\t".s:generic_port[i]
-                                \."\t: ".s:generic_type[i]."\t"
+                                \."\t: ".s:generic_type[i]"
                 elseif strwidth(s:generic_port[i])>=16
                     let component_part = component_part."\t\t\t\t".s:generic_port[i]
-                                \.": ".s:generic_type[i]."\t"
+                                \.": ".s:generic_type[i]
                 endif
                 if s:generic_value[i] != ""
-                    let component_part = component_part.":= ".s:generic_value[i]
+                    let component_part = component_part."\t:= ".s:generic_value[i]
                 endif
                 if i != s:generic_count - 1
                     let component_part = component_part.";\n"
@@ -1238,7 +1256,7 @@ function HDL_Tb_Build(type)
     let instant_part = HDL_Instant_Part(a:type)
     let all_part = entity_part.architecture_part.component_part.inport_part.outport_part
                 \.inoutport_part.constant_part.instant_part.clock_part.simulus_part
-"    æ£€æµ‹æ–‡ä»¶æ˜¯å¦å·²ç»å­˜åœ¨ 
+"    ¼ì²âÎÄ¼şÊÇ·ñÒÑ¾­´æÔÚ 
     if filewritable(tb_file_name) 
         let choice = confirm("The testbench file has been exist.\nSelect \"Open\" to open existed file.".
                     \"\nSelect \"Change\" to replace it.\nSelect \"Cancel\" to Cancel this operation.",
@@ -1697,9 +1715,14 @@ function HDL_Signal_Dec_Vhdl()
     endif
     " checks whether the signal has been already defined 
     normal gg
+    let last_line = HDL_Entity_Information()
     let flags = "W"
     while search('\(--.*\)\@<!'.expand(@0), flags) > 0
-        if line(".") < check_for_validity
+        if line('.') < last_line
+            normal `a
+            echo "it is probably a port"
+            return
+        elseif line(".") < check_for_validity && getline('.') =~ '\<signal\>'
             normal `a
             echo "signal already defined"
             return
@@ -1736,7 +1759,93 @@ function HDL_Signal_Dec_Vhdl()
 endfunction				
 
 
+"-------------------------------------------------------------------------------
+" Function		: HDL_Generic_For_Debussy() 
+" Description	: generic .fsdb for debussy		
+"                 ¶ÔVHDLÎÄ¼ş£¬ĞèÒªÏÈ½«novas.vhd±àÒë£¬²¢Ìí¼Ónovas¿âµ½modelsimµÄÄ¬ÈÏ¿âÖĞ
+"                 for example
+"                 1 vcom -lib novas novas.vhd 
+"                 2 open E:\modeltech_6.5\modelsim.ini,
+"                   ADD Novas = E:/Novas/novas to [Library]
+"                 3 modify "Veriuser = veriuser.sl" to "Veriuser = novas_fli.dll"
+"                   ("Veriuser = novas.dll" for verilog)
+"-------------------------------------------------------------------------------
+function HDL_Generic_For_Debussy()
+    if HDL_Check_Filetype() == 1
+        normal mc
+        if search('\(--.*\)\@<!\zs\<entity\>.\+\<is\>','w')
+            normal wyiw
+            let entity_name = @0
+        else
+            echo "Can't find the entity"
+            return
+        endif
+        let lib = "library novas;\nuse novas.pkg.all;"
+        let fsdb = "\tprocess\n\tbegin\n\t\tfsdbDumpfile(\"".entity_name
+                    \.".fsdb\");\n\t\tfsdbDumpvars(0,\"".entity_name
+                    \."\");\n\t\twait;\n\tend process;\n\n"
+        if !search('\<library\>\s*\<novas\>\s*;','w')
+            if search('\<library\>\s*\<ieee\>\s*;','w')
+                put! =lib
+            else 
+                call search('\(--.*\)\@<!\zs\<entity\>.\+\<is\>','w')
+                put! =lib
+            endif
+            if search('\<fsdbDumpfile\>\_.\+\<fsdbDumpvars\>','w') 
+                normal `c
+                echo "fsdb process has been defined."
+                return
+            else
+                normal `c
+                put =fsdb
+            endif
+        elseif search('\<fsdbDumpfile\>\_.\+\<fsdbDumpvars\>','w') 
+            normal `c
+            echo "fsdb process has been defined."
+            return
+        else 
+            normal `c
+            put =fsdb
+        endif
+    elseif HDL_Check_Filetype() == 2
+        normal mc
+        let module_line = search('\(\/\/.*\)\@<!\<module\>','w')
+        if search('\(\/\/.*\)\@<!\zs\<module\>','w')
+            normal wyiw
+            let module_name = @0
+        else
+            echo "Can't find the module"
+            return
+        endif
+        if !search('$\<fsdbDumpfile\>\_.\+$\<fsdbDumpvars\>','w')
+            let fsdb = "initial begin\n\t$fsdbDumpfile(\"".module_name
+                        \.".fsdb\");\n\t$fsdbDumpvars(1,".module_name
+                        \.");\nend\n\n"
+        else 
+            echo "fsdb process has been defined."
+            return
+        endif
+        normal `c
+        put! =fsdb
+    else
+        echo "Wrong Filetype"
+    endif
+endfunction
+
+
+
+
+
+
+
+
+
+
+
+
+
 "function VHDL_Vhdl_Format()
 "    let start_line = line('v')
 "    call HDL_Component_Format(start_line,start_line)
 "endfunction
+
